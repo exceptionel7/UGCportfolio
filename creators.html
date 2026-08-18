@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Become an Exceptionel UGC Creator | Turn Creativity Into Income</title>
+  <meta name="description" content="Become a UGC creator without becoming a huge influencer. Build a portfolio, find brand opportunities, learn short-form video, product storytelling, TikTok Shop and content monetization." />
+  <meta property="og:title" content="Become an Exceptionel UGC Creator" />
+  <link rel="canonical" href="https://exceptionel.example/creators.html" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><text y='20' font-size='20'>✦</text></svg>" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{fontFamily:{display:['Space Grotesk','sans-serif'],sans:['Inter','sans-serif']}}}}</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/theme.css" />
+</head>
+<body class="bg-aura font-sans">
+  <div id="site-header"></div>
+  <main class="relative z-10">
+    <section class="section !pb-8">
+      <div class="container-x grid lg:grid-cols-2 gap-12 items-center">
+        <div>
+          <span class="pill reveal mb-5">Become an Exceptionel UGC Creator</span>
+          <h1 class="reveal d1 font-display font-bold text-balance leading-[1.05]" style="font-size:clamp(2.2rem,5.5vw,4rem)">Turn Your Creativity Into <span class="text-gradient">Income.</span></h1>
+          <p class="reveal d2 text-lg text-zinc-400 mt-6 max-w-xl">You don't need to be a huge influencer to get paid for content. Create for brands, build your portfolio and grow recurring relationships.</p>
+          <div class="reveal d3 mt-8"><a href="#apply" class="btn btn-primary">Apply to Become a Creator</a></div>
+        </div>
+        <div class="reveal d2 grid grid-cols-3 gap-3">
+          <div class="card overflow-hidden"><div class="vframe" style="background:linear-gradient(160deg,#7c3aed,#ec4899)"><div class="absolute inset-0 grid place-items-center text-4xl">🎬</div></div></div>
+          <div class="card overflow-hidden mt-6"><div class="vframe" style="background:linear-gradient(160deg,#22d3ee,#3b82f6)"><div class="absolute inset-0 grid place-items-center text-4xl">✨</div></div></div>
+          <div class="card overflow-hidden"><div class="vframe" style="background:linear-gradient(160deg,#f59e0b,#ef4444)"><div class="absolute inset-0 grid place-items-center text-4xl">🎙️</div></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section !pt-6">
+      <div class="container-x">
+        <h2 class="reveal font-display font-bold text-2xl sm:text-3xl mb-8">What you'll build & learn</h2>
+        <div id="benefits" class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4"></div>
+      </div>
+    </section>
+
+    <section id="apply" class="section !pt-0">
+      <div class="container-x max-w-3xl">
+        <div class="card p-6 sm:p-9">
+          <span class="eyebrow">Creator application</span>
+          <h2 class="font-display font-bold text-2xl sm:text-3xl mt-2">Apply to Become a Creator</h2>
+          <p class="text-zinc-400 text-sm mt-2 mb-6">Tell us about yourself. We review every application.</p>
+          <form data-form="creator_applications" data-success="Application received! We'll review your profile and follow up by email." class="grid sm:grid-cols-2 gap-4">
+            <div><label class="label">Name</label><input class="field" name="name" required></div>
+            <div><label class="label">Email</label><input class="field" type="email" name="email" required></div>
+            <div class="sm:col-span-2"><label class="label">Social media links</label><input class="field" name="socials" placeholder="TikTok, Instagram, YouTube…"></div>
+            <div><label class="label">Location</label><input class="field" name="location"></div>
+            <div><label class="label">Content niches</label><input class="field" name="niches" placeholder="Beauty, tech, home…"></div>
+            <div><label class="label">Experience</label>
+              <select class="field" name="experience"><option>Just starting</option><option>Some experience</option><option>Experienced</option><option>Professional</option></select></div>
+            <div><label class="label">Portfolio link</label><input class="field" name="portfolio" placeholder="https://"></div>
+            <div><label class="label">Camera / phone equipment</label><input class="field" name="equipment" placeholder="e.g. iPhone 15, ring light, mic"></div>
+            <div><label class="label">Languages</label><input class="field" name="languages"></div>
+            <div class="sm:col-span-2"><label class="label">Why do you want to become a UGC creator?</label><textarea class="field" name="why" rows="4"></textarea></div>
+            <div class="sm:col-span-2"><button class="btn btn-primary w-full">Apply to Become a Creator</button><p data-msg class="hide text-sm text-emerald-400 mt-3"></p></div>
+          </form>
+        </div>
+      </div>
+    </section>
+  </main>
+  <div id="site-footer"></div>
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/components.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+    (function(){
+      const benefits=[["🗂️","Build a portfolio"],["🤝","Find brand opportunities"],["🎬","Learn UGC"],["📱","Short-form video"],["📖","Product storytelling"],["🛍️","Learn TikTok Shop"],["💸","Content monetization"],["🔁","Recurring brand relationships"]];
+      document.getElementById("benefits").innerHTML=benefits.map((b,i)=>`<div class="reveal d${(i%4)+1} card p-6"><div class="text-3xl mb-3">${b[0]}</div><p class="font-semibold">${b[1]}</p></div>`).join("");
+      if(window.wireReveal2)wireReveal2();
+    })();
+  </script>
+</body>
+</html>

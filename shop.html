@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Exceptionel Shop — Viral Finds & Everyday Essentials</title>
+  <meta name="description" content="Shop kitchen, home, fashion, electronics, sports, toys, beauty, gadgets and lifestyle products. Search, filter, wishlist and secure checkout." />
+  <meta property="og:title" content="Exceptionel Shop" />
+  <link rel="canonical" href="https://exceptionel.example/shop.html" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><text y='20' font-size='20'>✦</text></svg>" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{fontFamily:{display:['Space Grotesk','sans-serif'],sans:['Inter','sans-serif']}}}}</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/theme.css" />
+</head>
+<body class="bg-aura font-sans">
+  <div id="site-header"></div>
+  <main class="relative z-10">
+    <section class="section !pb-6">
+      <div class="container-x">
+        <span class="pill reveal mb-5">Exceptionel Shop</span>
+        <h1 class="reveal d1 font-display font-bold text-balance leading-[1.05]" style="font-size:clamp(2.2rem,5.5vw,3.6rem)">Shop viral finds & <span class="text-gradient">everyday essentials.</span></h1>
+        <p class="reveal d2 text-zinc-400 mt-4 text-sm">Sample catalog shown — replace with real inventory from the admin dashboard.</p>
+      </div>
+    </section>
+
+    <section class="section !pt-2">
+      <div class="container-x grid lg:grid-cols-[260px_1fr] gap-8 items-start">
+        <!-- filters -->
+        <aside class="card p-5 lg:sticky lg:top-24">
+          <label class="label">Search</label>
+          <input id="shopSearch" class="field mb-5" placeholder="Search products…">
+          <label class="label">Category</label>
+          <div id="shopCats" class="flex flex-wrap gap-2 mb-5"></div>
+          <label class="label">Max price: <span id="priceLabel">$1,000</span></label>
+          <input id="priceRange" type="range" min="10" max="1000" value="1000" step="5" class="w-full accent-fuchsia-500">
+          <button id="wishToggle" class="btn btn-ghost btn-sm w-full mt-5">View Wishlist (<span id="wishCount">0</span>)</button>
+        </aside>
+        <!-- grid -->
+        <div>
+          <div id="shopGrid" class="grid sm:grid-cols-2 xl:grid-cols-3 gap-5"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- cart -->
+    <section id="cart" class="section">
+      <div class="container-x max-w-3xl">
+        <h2 class="font-display font-bold text-2xl sm:text-3xl mb-6">Your Cart</h2>
+        <div id="cartPage"></div>
+      </div>
+    </section>
+  </main>
+  <div id="site-footer"></div>
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/components.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+    (function(){const D=window.EXC_DATA; window._shop=window._shop||{q:"",cat:"All",max:1000};
+      // category chips
+      const cats=document.getElementById("shopCats");
+      cats.innerHTML=(D.shopCategories||[]).map((c,i)=>`<button class="pill chip ${i===0?'active':''}" data-cat="${c}">${c}</button>`).join("");
+      cats.addEventListener("click",e=>{const b=e.target.closest(".chip");if(!b)return;cats.querySelectorAll(".chip").forEach(x=>x.classList.remove("active"));b.classList.add("active");window._shop.cat=b.dataset.cat;renderShop();});
+      // search
+      document.getElementById("shopSearch").addEventListener("input",e=>{window._shop.q=e.target.value;renderShop();});
+      // price
+      const pr=document.getElementById("priceRange"),pl=document.getElementById("priceLabel");
+      pr.addEventListener("input",e=>{window._shop.max=Number(e.target.value);pl.textContent="$"+Number(e.target.value).toLocaleString();renderShop();});
+      // wishlist counter + toggle
+      const wc=document.getElementById("wishCount");
+      const refreshWish=()=>wc.textContent=Wish.get().length;
+      document.addEventListener("wishchange",refreshWish);refreshWish();
+      document.getElementById("wishToggle").addEventListener("click",function(){
+        window._shop.wishOnly=!window._shop.wishOnly;
+        this.textContent=window._shop.wishOnly?"Show All Products":`View Wishlist (${Wish.get().length})`;
+        renderShop();
+      });
+      renderShop();
+    })();
+  </script>
+</body>
+</html>

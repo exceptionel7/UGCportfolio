@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Contact Exceptionel</title>
+  <meta name="description" content="Contact Exceptionel — for brands wanting UGC, creators who want to join, customers needing order help, and partnership enquiries." />
+  <meta property="og:title" content="Contact Exceptionel" />
+  <link rel="canonical" href="https://exceptionel.example/contact.html" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><text y='20' font-size='20'>✦</text></svg>" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{fontFamily:{display:['Space Grotesk','sans-serif'],sans:['Inter','sans-serif']}}}}</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/theme.css" />
+</head>
+<body class="bg-aura font-sans">
+  <div id="site-header"></div>
+  <main class="relative z-10">
+    <section class="section !pb-8">
+      <div class="container-x max-w-4xl text-center">
+        <span class="pill reveal mb-5">Contact</span>
+        <h1 class="reveal d1 font-display font-bold text-balance leading-[1.05]" style="font-size:clamp(2.2rem,5.5vw,3.8rem)">How can we <span class="text-gradient">help?</span></h1>
+        <p class="reveal d2 text-lg text-zinc-400 mt-5">Choose what fits you best and we'll route your message to the right team.</p>
+      </div>
+    </section>
+
+    <section class="section !pt-2">
+      <div class="container-x max-w-3xl">
+        <!-- option tabs -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
+          <button class="opt card p-4 text-center active" data-opt="brands"><div class="text-2xl mb-1">🏷️</div><div class="text-sm font-semibold">Brands</div><div class="text-xs text-zinc-500">UGC for my brand</div></button>
+          <button class="opt card p-4 text-center" data-opt="creators"><div class="text-2xl mb-1">🎬</div><div class="text-sm font-semibold">Creators</div><div class="text-xs text-zinc-500">Become a creator</div></button>
+          <button class="opt card p-4 text-center" data-opt="customers"><div class="text-2xl mb-1">📦</div><div class="text-sm font-semibold">Customers</div><div class="text-xs text-zinc-500">Help with an order</div></button>
+          <button class="opt card p-4 text-center" data-opt="partners"><div class="text-2xl mb-1">🤝</div><div class="text-sm font-semibold">Partnerships</div><div class="text-xs text-zinc-500">Partner with us</div></button>
+        </div>
+
+        <div class="card p-6 sm:p-9">
+          <!-- BRANDS -->
+          <form data-form="contact_brands" data-success="Thanks! Our brand team will reply shortly." class="pane" data-pane="brands">
+            <h2 class="font-display font-bold text-xl mb-1">I want UGC for my brand.</h2>
+            <p class="text-sm text-zinc-400 mb-5">Prefer the full form? <a href="for-brands.html#apply" class="text-gradient">Start a brand campaign →</a></p>
+            <div class="grid sm:grid-cols-2 gap-4">
+              <div><label class="label">Company</label><input class="field" name="company" required></div>
+              <div><label class="label">Email</label><input class="field" type="email" name="email" required></div>
+              <div class="sm:col-span-2"><label class="label">Product / website</label><input class="field" name="product"></div>
+              <div class="sm:col-span-2"><label class="label">What do you need?</label><textarea class="field" name="message" rows="4"></textarea></div>
+            </div>
+            <button class="btn btn-primary w-full mt-5">Send Message</button><p data-msg class="hide text-sm text-emerald-400 mt-3"></p>
+          </form>
+          <!-- CREATORS -->
+          <form data-form="contact_creators" data-success="Thanks! We'll be in touch about joining." class="pane hide" data-pane="creators">
+            <h2 class="font-display font-bold text-xl mb-1">I want to become a creator.</h2>
+            <p class="text-sm text-zinc-400 mb-5">Ready to apply? <a href="creators.html#apply" class="text-gradient">Full creator application →</a></p>
+            <div class="grid sm:grid-cols-2 gap-4">
+              <div><label class="label">Name</label><input class="field" name="name" required></div>
+              <div><label class="label">Email</label><input class="field" type="email" name="email" required></div>
+              <div class="sm:col-span-2"><label class="label">Social links / portfolio</label><input class="field" name="links"></div>
+              <div class="sm:col-span-2"><label class="label">Tell us about you</label><textarea class="field" name="message" rows="4"></textarea></div>
+            </div>
+            <button class="btn btn-primary w-full mt-5">Send Message</button><p data-msg class="hide text-sm text-emerald-400 mt-3"></p>
+          </form>
+          <!-- CUSTOMERS -->
+          <form data-form="contact_support" data-success="Thanks! Support will follow up on your order." class="pane hide" data-pane="customers">
+            <h2 class="font-display font-bold text-xl mb-1">I need help with my order.</h2>
+            <div class="grid sm:grid-cols-2 gap-4 mt-5">
+              <div><label class="label">Name</label><input class="field" name="name" required></div>
+              <div><label class="label">Email</label><input class="field" type="email" name="email" required></div>
+              <div class="sm:col-span-2"><label class="label">Order number</label><input class="field" name="order" placeholder="EXC-XXXXXX"></div>
+              <div class="sm:col-span-2"><label class="label">How can we help?</label><textarea class="field" name="message" rows="4"></textarea></div>
+            </div>
+            <button class="btn btn-primary w-full mt-5">Send Message</button><p data-msg class="hide text-sm text-emerald-400 mt-3"></p>
+          </form>
+          <!-- PARTNERS -->
+          <form data-form="contact_partners" data-success="Thanks! Our partnerships team will reach out." class="pane hide" data-pane="partners">
+            <h2 class="font-display font-bold text-xl mb-1">I want to partner with Exceptionel.</h2>
+            <div class="grid sm:grid-cols-2 gap-4 mt-5">
+              <div><label class="label">Name / company</label><input class="field" name="company" required></div>
+              <div><label class="label">Email</label><input class="field" type="email" name="email" required></div>
+              <div class="sm:col-span-2"><label class="label">Partnership idea</label><textarea class="field" name="message" rows="4"></textarea></div>
+            </div>
+            <button class="btn btn-primary w-full mt-5">Send Message</button><p data-msg class="hide text-sm text-emerald-400 mt-3"></p>
+          </form>
+        </div>
+      </div>
+    </section>
+  </main>
+  <div id="site-footer"></div>
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/components.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+    (function(){
+      const opts=document.querySelectorAll(".opt"), panes=document.querySelectorAll(".pane");
+      function select(name){
+        opts.forEach(o=>o.classList.toggle("active",o.dataset.opt===name));
+        panes.forEach(p=>p.classList.toggle("hide",p.dataset.pane!==name));
+      }
+      opts.forEach(o=>o.addEventListener("click",()=>select(o.dataset.opt)));
+      const hash=location.hash.replace("#","");
+      const map={brands:"brands",creators:"creators",customers:"customers",partners:"partners"};
+      if(map[hash])select(map[hash]);
+    })();
+  </script>
+  <style>.opt.active{border-color:rgba(217,70,239,.5);background:var(--grad-soft)}</style>
+</body>
+</html>

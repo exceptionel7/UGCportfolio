@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>UGC Portfolio | Exceptionel</title>
+  <meta name="description" content="A cinematic portfolio of short-form UGC across beauty, kitchen, home, electronics, fashion, fitness and more. Watch product videos built to convert." />
+  <meta property="og:title" content="UGC Portfolio | Exceptionel" />
+  <link rel="canonical" href="https://exceptionel.example/portfolio.html" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><text y='20' font-size='20'>✦</text></svg>" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{fontFamily:{display:['Space Grotesk','sans-serif'],sans:['Inter','sans-serif']}}}}</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/theme.css" />
+</head>
+<body class="bg-aura font-sans">
+  <div id="site-header"></div>
+  <main class="relative z-10">
+    <section class="section !pb-8">
+      <div class="container-x">
+        <span class="pill reveal mb-5">Portfolio</span>
+        <h1 class="reveal d1 font-display font-bold text-balance leading-[1.05]" style="font-size:clamp(2.2rem,5.5vw,4rem)">Content that <span class="text-gradient">stops the scroll.</span></h1>
+        <p class="reveal d2 text-lg text-zinc-400 mt-5 max-w-2xl">Filter by category and tap any video to open the full-screen vertical viewer.</p>
+        <div id="portfolioFilters" class="flex flex-wrap gap-2 mt-8"></div>
+      </div>
+    </section>
+    <section class="section !pt-4">
+      <div class="container-x">
+        <div id="portfolioGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+      </div>
+    </section>
+    <section class="section !pt-0">
+      <div class="container-x">
+        <div class="rounded-[32px] p-10 sm:p-14 text-center" style="background:var(--grad)">
+          <h2 class="font-display font-bold text-white" style="font-size:clamp(1.8rem,4vw,2.8rem)">Want a video like this for your product?</h2>
+          <a href="contact.html#brands" class="btn bg-white text-[#1a1206] mt-6">Request a UGC Video</a>
+        </div>
+      </div>
+    </section>
+  </main>
+  <div id="site-footer"></div>
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/components.js"></script>
+  <script src="assets/js/app.js"></script>
+</body>
+</html>

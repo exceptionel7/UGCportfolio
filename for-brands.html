@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>For Brands — Stop Scrolling. Start Selling. | Exceptionel</title>
+  <meta name="description" content="Work with Exceptionel to get ready-to-use UGC and short-form video for organic social and paid advertising. Send your product, choose a package, we create, you grow." />
+  <meta property="og:title" content="For Brands | Exceptionel" />
+  <link rel="canonical" href="https://exceptionel.example/for-brands.html" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><text y='20' font-size='20'>✦</text></svg>" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{fontFamily:{display:['Space Grotesk','sans-serif'],sans:['Inter','sans-serif']}}}}</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/theme.css" />
+</head>
+<body class="bg-aura font-sans">
+  <div id="site-header"></div>
+  <main class="relative z-10">
+    <section class="section !pb-8">
+      <div class="container-x max-w-4xl">
+        <span class="pill reveal mb-5">For Brands</span>
+        <h1 class="reveal d1 font-display font-bold text-balance leading-[1.05]" style="font-size:clamp(2.2rem,5.5vw,4rem)">Stop Scrolling. <span class="text-gradient">Start Selling.</span></h1>
+        <p class="reveal d2 text-lg text-zinc-400 mt-6 max-w-2xl">Send us your product and we handle the rest — hooks, scripts, demonstrations and short-form content ready for organic social and paid advertising.</p>
+        <div class="reveal d3 mt-8"><a href="#apply" class="btn btn-primary">Start a Brand Campaign</a></div>
+      </div>
+    </section>
+
+    <!-- 4 steps -->
+    <section class="section !pt-6">
+      <div class="container-x">
+        <div id="steps" class="grid sm:grid-cols-2 lg:grid-cols-4 gap-5"></div>
+      </div>
+    </section>
+
+    <!-- value props -->
+    <section class="section !pt-0">
+      <div class="container-x grid lg:grid-cols-3 gap-4">
+        <div class="reveal card p-7"><div class="text-3xl mb-3">🎯</div><h3 class="font-semibold text-lg">Native to the feed</h3><p class="text-sm text-zinc-400 mt-2">Content designed to look organic — not like a polished ad people skip.</p></div>
+        <div class="reveal d1 card p-7"><div class="text-3xl mb-3">♻️</div><h3 class="font-semibold text-lg">Ready to reuse</h3><p class="text-sm text-zinc-400 mt-2">Use your videos for organic posts, whitelisting and paid campaigns.</p></div>
+        <div class="reveal d2 card p-7"><div class="text-3xl mb-3">⚡</div><h3 class="font-semibold text-lg">Fast turnaround</h3><p class="text-sm text-zinc-400 mt-2">Multiple hooks and variations so you can test what converts.</p></div>
+      </div>
+    </section>
+
+    <!-- application form -->
+    <section id="apply" class="section !pt-0">
+      <div class="container-x max-w-3xl">
+        <div class="card p-6 sm:p-9">
+          <span class="eyebrow">Brand campaign</span>
+          <h2 class="font-display font-bold text-2xl sm:text-3xl mt-2">Start a Brand Campaign</h2>
+          <p class="text-zinc-400 text-sm mt-2 mb-6">Tell us about your product and goals. We'll follow up with a tailored plan.</p>
+          <form data-form="brand_campaigns" data-success="Campaign request received! We'll review your product and reply with a tailored plan." class="grid sm:grid-cols-2 gap-4">
+            <div><label class="label">Company</label><input class="field" name="company" required></div>
+            <div><label class="label">Contact name</label><input class="field" name="contact" required></div>
+            <div><label class="label">Email</label><input class="field" type="email" name="email" required></div>
+            <div><label class="label">Website</label><input class="field" name="website" placeholder="https://"></div>
+            <div><label class="label">Product</label><input class="field" name="product" required></div>
+            <div><label class="label">Product category</label><input class="field" name="category" placeholder="e.g. Beauty, Kitchen"></div>
+            <div class="sm:col-span-2"><label class="label">Product URL</label><input class="field" name="product_url" placeholder="https://"></div>
+            <div class="sm:col-span-2"><label class="label">Campaign objective</label><input class="field" name="objective" placeholder="Awareness, conversions, launch…"></div>
+            <div><label class="label">Number of videos</label>
+              <select class="field" name="num_videos"><option>1</option><option>3</option><option>5</option><option>10</option><option>Custom</option></select></div>
+            <div><label class="label">Desired deadline</label><input class="field" type="date" name="deadline"></div>
+            <div><label class="label">Organic or paid advertising</label>
+              <select class="field" name="usage_type"><option>Organic</option><option>Paid ads</option><option>Both</option></select></div>
+            <div><label class="label">Usage requirements</label><input class="field" name="usage_req" placeholder="Whitelisting, exclusivity…"></div>
+            <div class="sm:col-span-2"><label class="label">Budget</label><input class="field" name="budget" placeholder="Approximate budget"></div>
+            <div class="sm:col-span-2"><label class="label">Additional information</label><textarea class="field" name="notes" rows="4"></textarea></div>
+            <div class="sm:col-span-2">
+              <button class="btn btn-primary w-full">Submit Campaign Request</button>
+              <p data-msg class="hide text-sm text-emerald-400 mt-3"></p>
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+  </main>
+  <div id="site-footer"></div>
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/components.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+    (function(){const D=window.EXC_DATA;
+      document.getElementById("steps").innerHTML=(D.brandSteps||[]).map((s,i)=>`
+        <div class="reveal d${(i%4)+1} card p-7"><div class="font-display font-bold text-4xl text-gradient">${s.n}</div><h3 class="font-semibold mt-3 text-lg">${s.title}</h3><p class="text-sm text-zinc-400 mt-2">${s.desc}</p></div>`).join("");
+      if(window.wireReveal2)wireReveal2();
+    })();
+  </script>
+</body>
+</html>

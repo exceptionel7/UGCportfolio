@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>UGC Services & Pricing | Exceptionel</title>
+  <meta name="description" content="Authentic short-form UGC for TikTok, Instagram Reels, Facebook, websites and paid ads: product demos, unboxings, testimonials, TikTok-style ads, voiceovers, photography and AI-assisted concepts." />
+  <meta property="og:title" content="UGC Services & Pricing | Exceptionel" />
+  <meta property="og:description" content="Your product deserves more than another advertisement." />
+  <link rel="canonical" href="https://exceptionel.example/ugc-services.html" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><text y='20' font-size='20'>✦</text></svg>" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{fontFamily:{display:['Space Grotesk','sans-serif'],sans:['Inter','sans-serif']}}}}</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/theme.css" />
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"Service","serviceType":"UGC content creation & short-form video marketing","provider":{"@type":"Organization","name":"Exceptionel"}}</script>
+</head>
+<body class="bg-aura font-sans">
+  <div id="site-header"></div>
+  <main class="relative z-10">
+    <!-- hero -->
+    <section class="section !pb-10">
+      <div class="container-x max-w-4xl">
+        <span class="pill reveal mb-5">UGC Services</span>
+        <h1 class="reveal d1 font-display font-bold text-balance leading-[1.05]" style="font-size:clamp(2.2rem,5.5vw,4rem)">Your Product Deserves More Than <span class="text-gradient">Another Advertisement.</span></h1>
+        <p class="reveal d2 text-lg text-zinc-400 mt-6 max-w-2xl">Exceptionel creates authentic short-form videos designed for TikTok, Instagram Reels, Facebook, websites and paid advertising — content that feels native to the feed and built to sell.</p>
+        <div class="reveal d3 mt-8 flex flex-wrap gap-3">
+          <a href="contact.html#brands" class="btn btn-primary">Get Your UGC Campaign Started</a>
+          <a href="#pricing" class="btn btn-ghost">See Pricing</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- services grid -->
+    <section class="section !pt-6">
+      <div class="container-x">
+        <div id="servicesFull" class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4"></div>
+      </div>
+    </section>
+
+    <!-- platforms strip -->
+    <section class="section !pt-0">
+      <div class="container-x">
+        <div class="card p-8 text-center">
+          <p class="eyebrow">Built for every feed</p>
+          <div class="flex flex-wrap justify-center gap-x-8 gap-y-3 mt-4 text-zinc-300 font-display">
+            <span>TikTok</span><span>Instagram Reels</span><span>Facebook</span><span>YouTube Shorts</span><span>Websites</span><span>Paid Ads</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- pricing -->
+    <section id="pricing" class="section !pt-0">
+      <div class="container-x">
+        <div class="text-center mb-12">
+          <span class="eyebrow reveal">UGC Pricing</span>
+          <h2 class="reveal d1 font-display font-bold mt-3" style="font-size:clamp(1.9rem,4vw,2.8rem)">Choose your content plan.</h2>
+        </div>
+        <div id="pricingGrid" class="grid md:grid-cols-2 lg:grid-cols-4 gap-5"></div>
+        <p id="pricingNote" class="text-center text-xs text-zinc-500 mt-8 max-w-2xl mx-auto"></p>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="section !pt-0">
+      <div class="container-x">
+        <div class="rounded-[32px] p-10 sm:p-14 text-center" style="background:var(--grad)">
+          <h2 class="font-display font-bold text-white" style="font-size:clamp(1.8rem,4vw,3rem)">Ready to make content that converts?</h2>
+          <p class="text-white/85 mt-3">Tell us about your product and pick a package.</p>
+          <a href="contact.html#brands" class="btn bg-white text-[#1a1206] mt-6">Get Your UGC Campaign Started</a>
+        </div>
+      </div>
+    </section>
+  </main>
+  <div id="site-footer"></div>
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/components.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+    (function(){const D=window.EXC_DATA;
+      document.getElementById("servicesFull").innerHTML=(D.services||[]).map((s,i)=>`
+        <div class="reveal d${(i%4)+1} card p-6"><div class="text-3xl mb-3">${s.icon}</div><h3 class="font-semibold text-lg">${s.title}</h3><p class="text-sm text-zinc-400 mt-2">${s.desc}</p></div>`).join("");
+      document.getElementById("pricingGrid").innerHTML=(D.pricing||[]).map((p,i)=>`
+        <div class="reveal d${(i%4)+1} card ${p.featured?'card-glow ring-1 ring-fuchsia-500/40':''} p-6 flex flex-col">
+          ${p.featured?'<span class="pill self-start mb-3" style="background:var(--grad);color:#fff;border:none">Most popular</span>':''}
+          <h3 class="font-display font-bold text-xl">${p.name}</h3><p class="text-sm text-zinc-400">${p.videos}</p>
+          <div class="mt-4"><span class="text-xs text-zinc-500">Starting at</span><div class="font-display font-bold text-4xl">$${p.price}</div></div>
+          <ul class="mt-5 space-y-2 text-sm text-zinc-300 flex-1">${p.features.map(f=>`<li class="flex gap-2"><span class="text-fuchsia-400">✓</span>${f}</li>`).join("")}</ul>
+          <a href="contact.html#brands" class="btn ${p.featured?'btn-primary':'btn-ghost'} w-full mt-6">${p.cta}</a>
+        </div>`).join("");
+      document.getElementById("pricingNote").textContent=D.pricingNote||"";
+      if(window.wireReveal2)wireReveal2();
+    })();
+  </script>
+</body>
+</html>

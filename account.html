@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Account | Exceptionel</title>
+  <meta name="description" content="Exceptionel account dashboards for customers, creators and brands — orders, downloads, campaigns, earnings and more." />
+  <meta name="robots" content="noindex" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><text y='20' font-size='20'>✦</text></svg>" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{fontFamily:{display:['Space Grotesk','sans-serif'],sans:['Inter','sans-serif']}}}}</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/theme.css" />
+</head>
+<body class="bg-aura font-sans">
+  <div id="site-header"></div>
+  <main class="relative z-10">
+    <section class="section !pb-6">
+      <div class="container-x">
+        <span class="pill reveal mb-4">My Account</span>
+        <h1 class="reveal d1 font-display font-bold" style="font-size:clamp(1.9rem,4.5vw,3rem)">Your Exceptionel dashboard</h1>
+        <p class="reveal d2 text-zinc-400 mt-3 text-sm max-w-2xl">Demo dashboards backed by local data. Secure authentication, invoices, shipment tracking and payouts connect to real services once the backend is wired (see README).</p>
+        <!-- role switch -->
+        <div class="flex flex-wrap gap-2 mt-6">
+          <button class="pill chip role active" data-role="customer">👤 Customer</button>
+          <button class="pill chip role" data-role="creator">🎬 Creator</button>
+          <button class="pill chip role" data-role="brand">🏷️ Brand</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="section !pt-2">
+      <div class="container-x grid lg:grid-cols-[240px_1fr] gap-8 items-start">
+        <aside class="card p-4 lg:sticky lg:top-24">
+          <nav id="subnav" class="grid gap-1"></nav>
+        </aside>
+        <div id="panel" class="min-h-[300px]"></div>
+      </div>
+    </section>
+  </main>
+  <div id="site-footer"></div>
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/components.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+  (function(){
+    const $=s=>document.querySelector(s);
+    const menus={
+      customer:[["orders","Orders","🧾"],["downloads","Digital Downloads","⬇️"],["invoices","Invoices","📄"],["tracking","Order Tracking","🚚"],["subscriptions","Subscriptions","🔁"],["profile","Profile & Addresses","⚙️"],["support","Support","💬"]],
+      creator:[["profile","Creator Profile","🪪"],["portfolio","Portfolio","🗂️"],["campaigns","Apply to Campaigns","📢"],["assignments","Assignments","🎯"],["uploads","Upload Videos","⬆️"],["earnings","Earnings & Payments","💰"],["messages","Brand Messages","✉️"]],
+      brand:[["profile","Company Profile","🏢"],["submit","Submit Campaign","➕"],["creators","Select Creators","👥"],["review","Review Videos","🎬"],["status","Campaign Status","📊"],["downloads","Download Final Videos","⬇️"],["invoices","Invoices","📄"]]
+    };
+    let role="customer", tab="orders";
+
+    function orders(){ return JSON.parse(localStorage.getItem("exc_orders")||"[]"); }
+    function money(n){return n===0?"Free":"$"+Number(n).toLocaleString();}
+    function findItem(id){return (EXC_DATA.products||[]).concat(EXC_DATA.digitalProducts||[],EXC_DATA.courses||[]).find(p=>p.id===id);}
+
+    function empty(msg){return `<div class="card p-10 text-center text-zinc-400">${msg}</div>`;}
+    function card(inner){return `<div class="card p-6">${inner}</div>`;}
+
+    const views={
+      // ---- CUSTOMER ----
+      orders(){const o=orders(); if(!o.length)return empty('No orders yet. <a href="shop.html" class="text-gradient font-semibold">Start shopping →</a>');
+        return o.slice().reverse().map(ord=>card(`<div class="flex flex-wrap justify-between gap-2"><div><p class="font-semibold">Order ${ord.id}</p><p class="text-xs text-zinc-500">${new Date(ord.at).toLocaleString()}</p></div><span class="pill">${money(ord.total)}</span></div>
+        <div class="mt-3 grid gap-2">${ord.items.map(it=>{const p=findItem(it.id);return p?`<div class="flex items-center gap-3 text-sm"><span class="w-8 h-8 rounded-lg grid place-items-center" style="background:linear-gradient(135deg,${p.grad[0]},${p.grad[1]})">${p.emoji}</span><span class="flex-1">${p.title} × ${it.qty}</span><span class="text-zinc-400">${money(p.price*it.qty)}</span></div>`:""}).join("")}</div>`)).join("");},
+      downloads(){const o=orders();const digital=[];o.forEach(ord=>ord.items.forEach(it=>{const p=(EXC_DATA.digitalProducts||[]).concat(EXC_DATA.courses||[]).find(x=>x.id===it.id);if(p)digital.push(p);}));
+        if(!digital.length)return empty('No digital downloads yet. Purchase digital products or courses to unlock secure downloads here.');
+        return `<div class="grid sm:grid-cols-2 gap-4">${digital.map(p=>card(`<div class="flex items-center gap-3"><span class="w-10 h-10 rounded-lg grid place-items-center text-xl" style="background:linear-gradient(135deg,${p.grad[0]},${p.grad[1]})">${p.emoji}</span><div class="flex-1"><p class="font-semibold text-sm">${p.title}</p></div><button class="btn btn-primary btn-sm" onclick="toast('Secure download link generates once file storage is connected.')">Download</button></div>`)).join("")}</div>`;},
+      invoices(){const o=orders();if(!o.length)return empty("No invoices yet.");return o.slice().reverse().map(ord=>card(`<div class="flex justify-between items-center"><div><p class="font-semibold">Invoice ${ord.id}</p><p class="text-xs text-zinc-500">${new Date(ord.at).toLocaleDateString()} · ${money(ord.total)}</p></div><button class="btn btn-ghost btn-sm" onclick="toast('PDF invoices generate once billing is connected.')">View PDF</button></div>`)).join("");},
+      tracking(){const o=orders();if(!o.length)return empty("No shipments to track.");return o.slice().reverse().map(ord=>card(`<p class="font-semibold mb-3">Order ${ord.id}</p><div class="flex items-center gap-2 text-xs"><span class="pill" style="background:var(--grad);color:#fff;border:none">Processing</span><span class="flex-1 h-px bg-white/10"></span><span class="pill">Shipped</span><span class="flex-1 h-px bg-white/10"></span><span class="pill">Delivered</span></div><p class="text-xs text-zinc-500 mt-3">Live tracking numbers appear once fulfilment is connected.</p>`)).join("");},
+      subscriptions(){return card('<p class="font-semibold">Memberships</p><p class="text-sm text-zinc-400 mt-2">No active subscription. Explore <a href="creator-academy.html#memberships" class="text-gradient">Creator Pro & Brand Pro →</a></p>');},
+      profile(){return card(`<form data-form="profile_customer" data-success="Profile saved locally." class="grid sm:grid-cols-2 gap-4"><div><label class="label">Full name</label><input class="field" name="name"></div><div><label class="label">Email</label><input class="field" type="email" name="email"></div><div class="sm:col-span-2"><label class="label">Shipping address</label><input class="field" name="address"></div><div class="sm:col-span-2"><button class="btn btn-primary">Save Profile</button><p data-msg class="hide text-sm text-emerald-400 mt-2"></p></div></form>`);},
+      support(){return card('<p class="font-semibold">Need help?</p><p class="text-sm text-zinc-400 mt-2 mb-4">Our team is here for order issues and questions.</p><a href="contact.html#customers" class="btn btn-primary">Contact Support</a>');},
+      // ---- CREATOR ----
+      portfolio(){return card('<p class="font-semibold mb-3">Your portfolio</p><div class="grid grid-cols-3 gap-3">'+[1,2,3].map(()=>'<div class="vframe glass grid place-items-center text-zinc-500 text-sm">+ Upload</div>').join("")+'</div><button class="btn btn-ghost btn-sm mt-4" onclick="toast(\'Video uploads enable once media storage is connected.\')">Upload Video</button>');},
+      campaigns(){return card('<p class="font-semibold">Open brand campaigns</p><p class="text-sm text-zinc-400 mt-2">No open campaigns to display yet. Available briefs will appear here for you to apply.</p>');},
+      assignments(){return empty("No active assignments yet.");},
+      uploads(){return card('<p class="font-semibold">Submit completed videos</p><div class="vframe glass grid place-items-center text-zinc-500 mt-3 max-w-[200px]">Drop video</div><button class="btn btn-ghost btn-sm mt-4" onclick="toast(\'Enable uploads by connecting media storage.\')">Upload</button>');},
+      earnings(){return card('<p class="font-semibold">Earnings</p><div class="font-display font-bold text-4xl text-gradient mt-2">—</div><p class="text-xs text-zinc-500 mt-1">Earnings display once payouts are connected. No fake figures shown.</p>');},
+      messages(){return empty("No brand messages yet.");},
+      // ---- BRAND ----
+      submit(){return card('<p class="font-semibold mb-3">Submit a campaign</p><a href="for-brands.html#apply" class="btn btn-primary">Open Campaign Form</a>');},
+      creators(){return card('<p class="font-semibold">Select creators</p><p class="text-sm text-zinc-400 mt-2">Browse and select approved creators for your campaign. Creator roster appears here once creators are onboarded.</p>');},
+      review(){return empty("No videos submitted for review yet.");},
+      status(){const c=JSON.parse(localStorage.getItem("exc_brand_campaigns")||"[]");if(!c.length)return empty('No campaigns yet. <a href="for-brands.html#apply" class="text-gradient font-semibold">Submit one →</a>');return c.slice().reverse().map(x=>card(`<div class="flex justify-between"><div><p class="font-semibold">${x.product||x.company||"Campaign"}</p><p class="text-xs text-zinc-500">${x.num_videos||"?"} videos · ${new Date(x.at).toLocaleDateString()}</p></div><span class="pill" style="background:var(--grad);color:#fff;border:none">Submitted</span></div>`)).join("");},
+    };
+    // shared reused
+    views.profileBrand=()=>card(`<form data-form="profile_brand" data-success="Company profile saved." class="grid sm:grid-cols-2 gap-4"><div><label class="label">Company</label><input class="field" name="company"></div><div><label class="label">Website</label><input class="field" name="website"></div><div class="sm:col-span-2"><label class="label">About</label><textarea class="field" name="about" rows="3"></textarea></div><div class="sm:col-span-2"><button class="btn btn-primary">Save</button><p data-msg class="hide text-sm text-emerald-400 mt-2"></p></div></form>`);
+    views.profileCreator=()=>card(`<form data-form="profile_creator" data-success="Creator profile saved." class="grid sm:grid-cols-2 gap-4"><div><label class="label">Name</label><input class="field" name="name"></div><div><label class="label">Niches</label><input class="field" name="niches"></div><div class="sm:col-span-2"><label class="label">Bio</label><textarea class="field" name="bio" rows="3"></textarea></div><div class="sm:col-span-2"><label class="label">Payment info</label><input class="field" name="payment" placeholder="Connect payout provider later"></div><div class="sm:col-span-2"><button class="btn btn-primary">Save</button><p data-msg class="hide text-sm text-emerald-400 mt-2"></p></div></form>`);
+
+    function resolve(){
+      // profile is role-specific
+      if(tab==="profile"&&role==="creator")return views.profileCreator();
+      if(tab==="profile"&&role==="brand")return views.profileBrand();
+      if(tab==="downloads"&&role==="brand")return empty("Final approved videos download here once a campaign completes.");
+      return (views[tab]||(()=>empty("Nothing here yet.")))();
+    }
+    function renderSubnav(){
+      $("#subnav").innerHTML=menus[role].map(([k,label,ic])=>`<button class="text-left px-3 py-2 rounded-xl text-sm ${k===tab?'text-white':'text-zinc-400'} hover:text-white transition ${k===tab?'bg-white/5':''}" data-tab="${k}"><span class="mr-2">${ic}</span>${label}</button>`).join("");
+      $("#subnav").querySelectorAll("[data-tab]").forEach(b=>b.addEventListener("click",()=>{tab=b.dataset.tab;render();}));
+    }
+    function render(){renderSubnav();$("#panel").innerHTML=resolve();if(window.__wireFormsAgain)window.__wireFormsAgain();rewireForms();}
+    function rewireForms(){document.querySelectorAll("#panel [data-form]").forEach(form=>{if(form.__wired)return;form.__wired=true;form.addEventListener("submit",e=>{e.preventDefault();const key=form.dataset.form;const data=Object.fromEntries(new FormData(form));const s=JSON.parse(localStorage.getItem("exc_"+key)||"[]");s.push({...data,at:new Date().toISOString()});localStorage.setItem("exc_"+key,JSON.stringify(s));const m=form.querySelector("[data-msg]");if(m){m.textContent=form.dataset.success||"Saved.";m.classList.remove("hide");}toast("Saved");});});}
+
+    document.querySelectorAll(".role").forEach(b=>b.addEventListener("click",()=>{
+      document.querySelectorAll(".role").forEach(x=>x.classList.remove("active"));b.classList.add("active");
+      role=b.dataset.role; tab=menus[role][0][0]; render();
+    }));
+    // deep-link (#orders etc.)
+    const h=location.hash.replace("#","");
+    if(h&&menus.customer.some(m=>m[0]===h))tab=h;
+    render();
+  })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Blog — UGC, TikTok, Online Income & Creator Economy | Exceptionel</title>
+  <meta name="description" content="Guides on becoming a UGC creator, viral hooks, making money online, e-commerce, marketing, the creator economy, AI and product reviews." />
+  <meta property="og:title" content="Exceptionel Blog" />
+  <link rel="canonical" href="https://exceptionel.example/blog.html" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><text y='20' font-size='20'>✦</text></svg>" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{fontFamily:{display:['Space Grotesk','sans-serif'],sans:['Inter','sans-serif']}}}}</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/theme.css" />
+</head>
+<body class="bg-aura font-sans">
+  <div id="site-header"></div>
+  <main class="relative z-10">
+    <section class="section !pb-6">
+      <div class="container-x">
+        <span class="pill reveal mb-5">Blog</span>
+        <h1 class="reveal d1 font-display font-bold text-balance leading-[1.05]" style="font-size:clamp(2.2rem,5.5vw,3.6rem)">Learn the <span class="text-gradient">attention economy.</span></h1>
+        <div class="reveal d2 mt-6 max-w-md"><input id="blogSearch" class="field" placeholder="Search articles…"></div>
+        <div id="blogFilters" class="flex flex-wrap gap-2 mt-6"></div>
+      </div>
+    </section>
+
+    <!-- featured -->
+    <section class="section !pt-2">
+      <div class="container-x">
+        <div id="featured" class="grid md:grid-cols-2 gap-5 mb-10"></div>
+        <div id="blogGrid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5"></div>
+      </div>
+    </section>
+
+    <!-- newsletter -->
+    <section class="section !pt-0">
+      <div class="container-x">
+        <div class="rounded-[32px] p-10 sm:p-12" style="background:var(--grad)">
+          <div class="max-w-xl">
+            <h2 class="font-display font-bold text-white" style="font-size:clamp(1.6rem,3.5vw,2.4rem)">Get Better at Content. Make More Money Online.</h2>
+            <p class="text-white/85 mt-3">Join the free Exceptionel newsletter.</p>
+            <form data-newsletter class="mt-5 flex flex-col sm:flex-row gap-3">
+              <input class="field !bg-white/15 !border-white/30 placeholder:text-white/70 text-white" name="firstName" placeholder="First name" required>
+              <input class="field !bg-white/15 !border-white/30 placeholder:text-white/70 text-white" type="email" name="email" placeholder="Email address" required>
+              <button class="btn bg-white text-[#1a1206] shrink-0">Join Free</button>
+            </form>
+            <p data-nl-msg class="text-white/80 text-xs mt-2"></p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+  <div id="site-footer"></div>
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/components.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+    (function(){const D=window.EXC_DATA; let cat="All", q="";
+      const filters=document.getElementById("blogFilters");
+      filters.innerHTML=(D.blogCategories||[]).map((c,i)=>`<button class="pill chip ${i===0?'active':''}" data-cat="${c}">${c}</button>`).join("");
+      filters.addEventListener("click",e=>{const b=e.target.closest(".chip");if(!b)return;filters.querySelectorAll(".chip").forEach(x=>x.classList.remove("active"));b.classList.add("active");cat=b.dataset.cat;render();});
+      document.getElementById("blogSearch").addEventListener("input",e=>{q=e.target.value.toLowerCase();render();});
+      function card(p){return `<a href="#" onclick="return false" class="reveal card overflow-hidden block">
+        <div class="relative" style="aspect-ratio:16/9;background:linear-gradient(135deg,${p.grad[0]},${p.grad[1]})"><div class="absolute inset-0 grid place-items-center text-5xl">${p.emoji}</div></div>
+        <div class="p-5"><div class="flex items-center gap-2 text-xs text-zinc-500 mb-2"><span class="pill">${p.category}</span><span>${p.read} read</span></div>
+        <h3 class="font-semibold text-lg leading-snug">${p.title}</h3><p class="text-sm text-zinc-400 mt-2">${p.excerpt}</p>
+        <span class="text-sm text-gradient font-semibold mt-3 inline-block">Read article →</span></div></a>`;}
+      function render(){
+        const list=(D.blog||[]).filter(p=>(cat==="All"||p.category===cat)&&(!q||p.title.toLowerCase().includes(q)||p.excerpt.toLowerCase().includes(q)));
+        const feat=list.filter(p=>p.featured), rest=list.filter(p=>!p.featured);
+        document.getElementById("featured").innerHTML=(cat==="All"&&!q?feat:[]).map(card).join("");
+        const grid=(cat==="All"&&!q)?rest:list;
+        document.getElementById("blogGrid").innerHTML=grid.map(card).join("")||`<p class="text-zinc-500 col-span-full">No articles found.</p>`;
+        if(window.wireReveal2)wireReveal2();
+      }
+      render();
+    })();
+  </script>
+</body>
+</html>

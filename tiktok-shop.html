@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shop Viral Finds — TikTok Shop | Exceptionel</title>
+  <meta name="description" content="Discover products through short-form videos and shop your favorites. Seen it on TikTok? Shop viral finds at Exceptionel." />
+  <meta property="og:title" content="Shop Viral Finds — TikTok Shop | Exceptionel" />
+  <link rel="canonical" href="https://exceptionel.example/tiktok-shop.html" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><text y='20' font-size='20'>✦</text></svg>" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{fontFamily:{display:['Space Grotesk','sans-serif'],sans:['Inter','sans-serif']}}}}</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/theme.css" />
+</head>
+<body class="bg-aura font-sans">
+  <div id="site-header"></div>
+  <main class="relative z-10">
+    <section class="section !pb-8">
+      <div class="container-x">
+        <span class="pill reveal mb-5"><span>🎵</span> TikTok Shop</span>
+        <h1 class="reveal d1 font-display font-bold text-balance leading-[1.05]" style="font-size:clamp(2.2rem,5.5vw,4rem)">Shop <span class="text-gradient">Viral Finds.</span></h1>
+        <p class="reveal d2 text-lg text-zinc-400 mt-5 max-w-2xl">Discover products through short-form videos and shop your favorites.</p>
+      </div>
+    </section>
+
+    <!-- vertical video feed -->
+    <section class="section !pt-2">
+      <div class="container-x">
+        <div id="ttFeed" class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4"></div>
+      </div>
+    </section>
+
+    <!-- Seen it on TikTok -->
+    <section class="section !pt-0">
+      <div class="container-x">
+        <div class="card p-8 sm:p-12 text-center">
+          <span class="eyebrow">Seen It On TikTok?</span>
+          <h2 class="font-display font-bold mt-3" style="font-size:clamp(1.6rem,3.5vw,2.4rem)">Discover products through short-form videos and shop your favorites.</h2>
+          <a href="shop.html" class="btn btn-primary mt-6">Browse the Full Shop</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- integration placeholder (honest) -->
+    <section class="section !pt-0">
+      <div class="container-x max-w-3xl">
+        <div class="grad-border p-6 sm:p-8" style="background:var(--grad-soft)">
+          <div class="flex items-start gap-4">
+            <div class="text-2xl">🔌</div>
+            <div>
+              <h3 class="font-semibold text-lg">TikTok Shop integration — ready to connect</h3>
+              <p class="text-sm text-zinc-300 mt-2">This storefront is built to connect to official TikTok Shop / affiliate functionality through approved APIs. Until credentials are added, products above are placeholders. No integration is faked — real product syncing activates once the TikTok Shop API is connected in the admin dashboard.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+  <div id="site-footer"></div>
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/components.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+    (function(){const D=window.EXC_DATA;
+      const viral=(D.products||[]).filter(p=>p.viral).concat((D.products||[]).filter(p=>!p.viral));
+      document.getElementById("ttFeed").innerHTML=viral.map((p,i)=>`
+        <div class="reveal d${(i%4)+1} card card-glow overflow-hidden group">
+          <div class="vframe" style="background:linear-gradient(160deg,${p.grad[0]},${p.grad[1]})">
+            <div class="absolute inset-0 grid place-items-center text-6xl">${p.emoji}</div>
+            <div class="play"><div class="w-12 h-12 rounded-full glass grid place-items-center text-white group-hover:scale-110 transition">▶</div></div>
+            <span class="absolute top-3 left-3 pill !text-white !border-white/30 !bg-black/30 text-[11px]">🔥 Viral</span>
+            <div class="absolute bottom-3 right-3 flex flex-col gap-3 text-white/90 text-lg"><span>♡</span><span>💬</span><span>↗</span></div>
+          </div>
+          <div class="p-4">
+            <p class="font-semibold truncate">${p.title}</p>
+            <p class="text-xs text-zinc-400 mt-0.5">${p.category}</p>
+            <div class="flex items-center justify-between mt-3">
+              <span class="font-display font-bold text-lg">$${p.price}</span>
+              <button class="btn btn-primary btn-sm" onclick="Cart.add('${p.id}')">Shop Now</button>
+            </div>
+          </div>
+        </div>`).join("");
+      if(window.wireReveal2)wireReveal2();
+    })();
+  </script>
+</body>
+</html>

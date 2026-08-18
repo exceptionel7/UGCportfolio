@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Creator Academy — Learn. Create. Monetize. | Exceptionel</title>
+  <meta name="description" content="Courses to learn UGC, short-form video, TikTok content and building online income. UGC Creator Starter Course, TikTok Content Mastery and the Online Income Blueprint." />
+  <meta property="og:title" content="Creator Academy | Exceptionel" />
+  <link rel="canonical" href="https://exceptionel.example/creator-academy.html" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><text y='20' font-size='20'>✦</text></svg>" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{fontFamily:{display:['Space Grotesk','sans-serif'],sans:['Inter','sans-serif']}}}}</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/theme.css" />
+</head>
+<body class="bg-aura font-sans">
+  <div id="site-header"></div>
+  <main class="relative z-10">
+    <section class="section !pb-8">
+      <div class="container-x max-w-4xl">
+        <span class="pill reveal mb-5">Creator Academy</span>
+        <h1 class="reveal d1 font-display font-bold text-balance leading-[1.05]" style="font-size:clamp(2.2rem,5.5vw,4rem)">Learn. Create. <span class="text-gradient">Monetize.</span></h1>
+        <p class="reveal d2 text-lg text-zinc-400 mt-6 max-w-2xl">Practical courses that take you from your first video to a real income stream — taught the way creators actually work today.</p>
+      </div>
+    </section>
+
+    <section class="section !pt-6">
+      <div class="container-x">
+        <div id="courses" class="grid lg:grid-cols-3 gap-6"></div>
+      </div>
+    </section>
+
+    <!-- memberships -->
+    <section class="section !pt-0">
+      <div class="container-x">
+        <div class="text-center mb-12">
+          <span class="eyebrow reveal">Membership</span>
+          <h2 class="reveal d1 font-display font-bold mt-3" style="font-size:clamp(1.8rem,4vw,2.6rem)">Go further with a membership.</h2>
+          <p class="reveal d2 text-zinc-400 mt-3 text-sm">Subscription pricing is editable from the admin dashboard.</p>
+        </div>
+        <div id="memberships" class="grid md:grid-cols-3 gap-5"></div>
+      </div>
+    </section>
+  </main>
+  <div id="site-footer"></div>
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/components.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+    (function(){const D=window.EXC_DATA;
+      document.getElementById("courses").innerHTML=(D.courses||[]).map((c,i)=>`
+        <div class="reveal d${(i%3)+1} card overflow-hidden flex flex-col">
+          <div class="relative" style="aspect-ratio:16/10;background:linear-gradient(135deg,${c.grad[0]},${c.grad[1]})">
+            <div class="absolute inset-0 grid place-items-center text-6xl">${c.emoji}</div>
+          </div>
+          <div class="p-6 flex flex-col flex-1">
+            <h3 class="font-display font-bold text-xl">${c.title}</h3>
+            <p class="text-sm text-zinc-400 mt-2">${c.desc}</p>
+            <p class="text-xs uppercase tracking-wider text-zinc-500 mt-5 mb-2">Lessons</p>
+            <ul class="grid grid-cols-2 gap-x-3 gap-y-1 text-sm text-zinc-300 flex-1">${c.lessons.map(l=>`<li class="flex gap-1.5"><span class="text-fuchsia-400">›</span>${l}</li>`).join("")}</ul>
+            <div class="flex items-center justify-between mt-6">
+              <span class="font-display font-bold text-2xl">$${c.price}</span>
+              <button class="btn btn-primary" onclick="Checkout.buyNow('${c.id}')">Buy Course</button>
+            </div>
+            <a href="account.html#courses" class="text-center text-xs text-zinc-500 mt-3 hover:text-white">Access via your student dashboard →</a>
+          </div>
+        </div>`).join("");
+
+      document.getElementById("memberships").innerHTML=(D.memberships||[]).map((m,i)=>`
+        <div class="reveal d${(i%3)+1} card ${m.featured?'card-glow ring-1 ring-fuchsia-500/40':''} p-7 flex flex-col">
+          ${m.featured?'<span class="pill self-start mb-3" style="background:var(--grad);color:#fff;border:none">Most popular</span>':''}
+          <h3 class="font-display font-bold text-xl">${m.name}</h3>
+          <div class="mt-3 font-display font-bold text-4xl">${m.price===0?'Free':'$'+m.price}<span class="text-base text-zinc-500 font-sans">${m.period||''}</span></div>
+          <ul class="mt-5 space-y-2 text-sm text-zinc-300 flex-1">${m.features.map(f=>`<li class="flex gap-2"><span class="text-fuchsia-400">✓</span>${f}</li>`).join("")}</ul>
+          <a href="account.html" class="btn ${m.featured?'btn-primary':'btn-ghost'} w-full mt-6">${m.cta}</a>
+        </div>`).join("");
+      if(window.wireReveal2)wireReveal2();
+    })();
+  </script>
+</body>
+</html>

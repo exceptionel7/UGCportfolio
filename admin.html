@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Dashboard | Exceptionel</title>
+  <meta name="robots" content="noindex" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><text y='20' font-size='20'>✦</text></svg>" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{fontFamily:{display:['Space Grotesk','sans-serif'],sans:['Inter','sans-serif']}}}}</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/theme.css" />
+</head>
+<body class="bg-aura font-sans">
+  <div id="site-header"></div>
+  <main class="relative z-10">
+    <section class="section !pb-4">
+      <div class="container-x">
+        <span class="pill reveal mb-4">Admin Dashboard</span>
+        <h1 class="reveal d1 font-display font-bold" style="font-size:clamp(1.9rem,4.5vw,3rem)">Manage everything — no code required</h1>
+        <p class="reveal d2 text-zinc-400 mt-3 text-sm max-w-3xl">Edits are saved as content overrides in your browser and instantly reflected across the site. In production this same editor writes to your database via a secure admin API. Changes here never touch source code.</p>
+      </div>
+    </section>
+
+    <section class="section !pt-2">
+      <div class="container-x grid lg:grid-cols-[220px_1fr] gap-8 items-start">
+        <aside class="card p-3 lg:sticky lg:top-24">
+          <nav id="adminNav" class="grid gap-1"></nav>
+          <div class="border-t border-white/10 mt-3 pt-3 grid gap-2">
+            <button id="resetBtn" class="btn btn-ghost btn-sm w-full">Reset to defaults</button>
+          </div>
+        </aside>
+        <div id="adminPanel"></div>
+      </div>
+    </section>
+  </main>
+  <div id="site-footer"></div>
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/components.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+  (function(){
+    const $=s=>document.querySelector(s);
+    const SECTIONS=[
+      ["overview","Overview","📊"],["stats","Statistics","🔢"],["pricing","UGC Pricing","💵"],
+      ["memberships","Memberships","🪪"],["services","UGC Services","🎬"],["products","Shop Products","🛍️"],
+      ["digital","Digital Products","⬇️"],["courses","Courses","🎓"],["blog","Blog Posts","📝"],
+      ["portfolio","Portfolio","🎞️"],["submissions","Submissions","📥"],["integrations","Integrations","🔌"]
+    ];
+    let sec="overview";
+
+    function getOverrides(){return JSON.parse(localStorage.getItem("exc_overrides")||"{}");}
+    function setOverride(key,val){const o=getOverrides();o[key]=val;localStorage.setItem("exc_overrides",JSON.stringify(o));window.EXC_DATA=window.EXC_DATA;toast("Saved — live across the site");}
+    function D(){ // fresh merged data
+      const d=JSON.parse(JSON.stringify(window.EXC_DEFAULTS));const o=getOverrides();Object.keys(o).forEach(k=>d[k]=o[k]);return d;
+    }
+    function card(inner){return `<div class="card p-6">${inner}</div>`;}
+
+    // JSON editor for array sections
+    function jsonEditor(key,label){
+      const val=JSON.stringify(D()[key],null,2);
+      return card(`<h2 class="font-display font-bold text-xl mb-1">${label}</h2>
+        <p class="text-sm text-zinc-400 mb-4">Edit the structured content below. Keep it valid JSON, then save. This is how ${label.toLowerCase()} would be managed via forms in a full CMS.</p>
+        <textarea id="jsonArea" class="field font-mono text-xs" rows="18" spellcheck="false">${val.replace(/</g,"&lt;")}</textarea>
+        <div class="flex gap-2 mt-3"><button class="btn btn-primary" onclick="ADMIN.saveJson('${key}')">Save Changes</button><button class="btn btn-ghost" onclick="ADMIN.render()">Cancel</button></div>`);
+    }
+
+    const panels={
+      overview(){
+        const subs=cnt("subscribers"),cam=cnt("brand_campaigns"),cre=cnt("creator_applications"),ord=cnt("orders");
+        const box=(n,l,ic)=>`<div class="card p-6"><div class="text-2xl">${ic}</div><div class="font-display font-bold text-3xl mt-2">${n}</div><p class="text-sm text-zinc-400">${l}</p></div>`;
+        return `<div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          ${box(ord,"Orders","🧾")}${box(cam,"Brand campaigns","📢")}${box(cre,"Creator applications","🎬")}${box(subs,"Email subscribers","✉️")}</div>
+          ${card('<h2 class="font-display font-bold text-lg mb-2">Manageable areas</h2><p class="text-sm text-zinc-400">Users, creators, brands, products, orders, digital products, UGC campaigns, videos, blog posts, courses, payments, coupons, reviews, subscribers, content, pricing and analytics all live here. This build wires the content + submissions layers; payment/coupon/review modules connect to backend services (see README).</p>')}`;
+      },
+      stats(){const s=D().stats;return card(`<h2 class="font-display font-bold text-xl mb-1">Statistics</h2><p class="text-sm text-zinc-400 mb-4">Leave blank to show a dash (—). Only enter real, verified numbers.</p>
+        <div class="grid sm:grid-cols-2 gap-4">${s.map((x,i)=>`<div><label class="label">${x.label}</label><div class="flex gap-2"><input class="field" id="stat_${i}" type="number" value="${x.value??''}" placeholder="—"><input class="field !w-20" id="statsuf_${i}" value="${x.suffix||''}" placeholder="+"></div></div>`).join("")}</div>
+        <button class="btn btn-primary mt-5" onclick="ADMIN.saveStats()">Save Statistics</button>`);},
+      pricing(){const p=D().pricing;return card(`<h2 class="font-display font-bold text-xl mb-4">UGC Pricing</h2>
+        <div class="grid sm:grid-cols-2 gap-4">${p.map((x,i)=>`<div class="glass rounded-xl p-4"><p class="font-semibold">${x.name} — ${x.videos}</p><label class="label mt-2">Starting price ($)</label><input class="field" id="price_${i}" type="number" value="${x.price}"></div>`).join("")}</div>
+        <label class="label mt-4">Pricing note</label><textarea class="field" id="pricingNote" rows="2">${D().pricingNote}</textarea>
+        <button class="btn btn-primary mt-4" onclick="ADMIN.savePricing()">Save Pricing</button>`);},
+      memberships(){const m=D().memberships;return card(`<h2 class="font-display font-bold text-xl mb-4">Membership pricing</h2>
+        <div class="grid sm:grid-cols-3 gap-4">${m.map((x,i)=>`<div class="glass rounded-xl p-4"><p class="font-semibold">${x.name}</p><label class="label mt-2">Price</label><input class="field" id="mem_${i}" type="number" value="${x.price}"><label class="label mt-2">Period</label><input class="field" id="memper_${i}" value="${x.period||''}" placeholder="/mo"></div>`).join("")}</div>
+        <button class="btn btn-primary mt-4" onclick="ADMIN.saveMemberships()">Save Memberships</button>`);},
+      services(){return jsonEditor("services","UGC Services");},
+      products(){return jsonEditor("products","Shop Products");},
+      digital(){return jsonEditor("digitalProducts","Digital Products");},
+      courses(){return jsonEditor("courses","Courses");},
+      blog(){return jsonEditor("blog","Blog Posts");},
+      portfolio(){return jsonEditor("portfolio","Portfolio");},
+      submissions(){
+        const groups=[["orders","Orders"],["brand_campaigns","Brand Campaigns"],["creator_applications","Creator Applications"],["subscribers","Email Subscribers"],["contact_brands","Contact — Brands"],["contact_creators","Contact — Creators"],["contact_support","Contact — Support"],["contact_partners","Contact — Partnerships"]];
+        return groups.map(([k,label])=>{const rows=JSON.parse(localStorage.getItem("exc_"+k)||"[]");
+          return card(`<div class="flex items-center justify-between mb-3"><h3 class="font-semibold">${label} <span class="text-zinc-500 text-sm">(${rows.length})</span></h3>${rows.length?`<button class="btn btn-ghost btn-sm" onclick="ADMIN.clear('${k}')">Clear</button>`:""}</div>${rows.length?`<pre class="text-xs text-zinc-400 overflow-auto max-h-60">${JSON.stringify(rows,null,2).replace(/</g,"&lt;")}</pre>`:'<p class="text-sm text-zinc-500">No submissions yet.</p>'}`);
+        }).join("");
+      },
+      integrations(){return card(`<h2 class="font-display font-bold text-xl mb-3">Integrations</h2>
+        <p class="text-sm text-zinc-400 mb-4">Connect real services here. Keys are stored server-side via environment variables — never in frontend code. Nothing is faked as connected.</p>
+        <div class="grid sm:grid-cols-2 gap-3">
+          ${[["💳","Payments","Stripe / PayPal — secure checkout & payouts"],["✉️","Email","Welcome sequences & newsletters (e.g. Resend, Mailchimp)"],["🎵","TikTok Shop","Official TikTok Shop / affiliate API"],["🗄️","Database","Orders, users, content & CMS storage"],["📦","Fulfilment","Shipment tracking & order status"],["📈","Analytics","Traffic & conversion analytics"]].map(([ic,t,d])=>`<div class="glass rounded-xl p-4 flex items-start gap-3"><span class="text-2xl">${ic}</span><div><p class="font-semibold">${t}</p><p class="text-xs text-zinc-400 mt-1">${d}</p><span class="pill mt-2 text-[11px]">Not connected</span></div></div>`).join("")}
+        </div>`);}
+    };
+    function cnt(k){return JSON.parse(localStorage.getItem("exc_"+k)||"[]").length;}
+
+    const ADMIN={
+      render(){
+        $("#adminNav").innerHTML=SECTIONS.map(([k,l,ic])=>`<button class="text-left px-3 py-2 rounded-xl text-sm ${k===sec?'text-white bg-white/5':'text-zinc-400'} hover:text-white transition" data-sec="${k}"><span class="mr-2">${ic}</span>${l}</button>`).join("");
+        $("#adminNav").querySelectorAll("[data-sec]").forEach(b=>b.addEventListener("click",()=>{sec=b.dataset.sec;ADMIN.render();}));
+        $("#adminPanel").innerHTML=(panels[sec]||panels.overview)();
+      },
+      saveStats(){const s=JSON.parse(JSON.stringify(D().stats));s.forEach((x,i)=>{const v=$("#stat_"+i).value;x.value=v===""?null:Number(v);x.suffix=$("#statsuf_"+i).value;});setOverride("stats",s);ADMIN.render();},
+      savePricing(){const p=JSON.parse(JSON.stringify(D().pricing));p.forEach((x,i)=>x.price=Number($("#price_"+i).value));setOverride("pricing",p);setOverride("pricingNote",$("#pricingNote").value);ADMIN.render();},
+      saveMemberships(){const m=JSON.parse(JSON.stringify(D().memberships));m.forEach((x,i)=>{x.price=Number($("#mem_"+i).value);x.period=$("#memper_"+i).value;});setOverride("memberships",m);ADMIN.render();},
+      saveJson(key){try{const val=JSON.parse($("#jsonArea").value);setOverride(key,val);ADMIN.render();}catch(e){toast("Invalid JSON — check your syntax");}},
+      clear(k){if(confirm("Clear all "+k+" submissions?")){localStorage.removeItem("exc_"+k);ADMIN.render();}}
+    };
+    window.ADMIN=ADMIN;
+    $("#resetBtn").addEventListener("click",()=>{if(confirm("Reset ALL content overrides to defaults?")){localStorage.removeItem("exc_overrides");toast("Reset to defaults");ADMIN.render();}});
+    ADMIN.render();
+  })();
+  </script>
+</body>
+</html>
