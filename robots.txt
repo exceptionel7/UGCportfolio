@@ -3,4 +3,4 @@ Allow: /
 Disallow: /admin.html
 Disallow: /account.html
 
-Sitemap: https://exceptionel.example/sitemap.xml
+Sitemap: https://exceptionelstudio.com/sitemap.xml

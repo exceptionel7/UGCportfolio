@@ -23,7 +23,7 @@ const DEFAULT_DATA = {
     name: "Exceptionel",
     tagline: "Create. Promote. Sell. Grow.",
     secondary: "Short-form content that gets attention and helps brands sell.",
-    email: "hello@exceptionel.example",
+    email: "hello@exceptionelstudio.com",
   },
 
   /* Homepage social-proof counters. null = "not entered yet" -> shows a dash.
