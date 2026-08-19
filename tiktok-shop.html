@@ -25,10 +25,13 @@
       </div>
     </section>
 
-    <!-- vertical video feed -->
+    <!-- vertical video feed sections -->
     <section class="section !pt-2">
-      <div class="container-x">
-        <div id="ttFeed" class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4"></div>
+      <div class="container-x grid gap-12">
+        <div><div class="flex items-center justify-between mb-4"><h2 class="font-display font-bold text-2xl">🔥 Trending Products</h2><a href="shop.html" class="btn btn-ghost btn-sm">Shop all</a></div><div class="tt-row grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4" data-feed="trending"></div></div>
+        <div><div class="flex items-center justify-between mb-4"><h2 class="font-display font-bold text-2xl">⭐ Creator Picks</h2></div><div class="tt-row grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4" data-feed="picks"></div></div>
+        <div><div class="flex items-center justify-between mb-4"><h2 class="font-display font-bold text-2xl">💫 Viral Finds</h2></div><div class="tt-row grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4" data-feed="viral"></div></div>
+        <div><div class="flex items-center justify-between mb-4"><h2 class="font-display font-bold text-2xl">🆕 New Arrivals</h2></div><div class="tt-row grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4" data-feed="new"></div></div>
       </div>
     </section>
 
@@ -60,28 +63,37 @@
   </main>
   <div id="site-footer"></div>
   <script src="assets/js/data.js"></script>
+  <script src="assets/js/store.js"></script>
   <script src="assets/js/components.js"></script>
   <script src="assets/js/app.js"></script>
   <script>
-    (function(){const D=window.EXC_DATA;
-      const viral=(D.products||[]).filter(p=>p.viral).concat((D.products||[]).filter(p=>!p.viral));
-      document.getElementById("ttFeed").innerHTML=viral.map((p,i)=>`
+    (function(){const D=window.EXC_DATA;const P=D.products||[];
+      const viral=P.filter(p=>p.viral);
+      const feeds={
+        trending: viral.concat(P.filter(p=>!p.viral)).slice(0,4),
+        picks: P.slice(2,6),
+        viral: viral,
+        new: P.slice(-4).reverse(),
+      };
+      function badgeFor(feed){return feed==="viral"||feed==="trending"?"🔥 Viral":feed==="new"?"🆕 New":"⭐ Pick";}
+      function card(p,i,feed){return `
         <div class="reveal d${(i%4)+1} card card-glow overflow-hidden group">
-          <div class="vframe" style="background:linear-gradient(160deg,${p.grad[0]},${p.grad[1]})">
+          <a href="product.html?id=${p.id}" class="block"><div class="vframe" style="background:linear-gradient(160deg,${p.grad[0]},${p.grad[1]})">
             <div class="absolute inset-0 grid place-items-center text-6xl">${p.emoji}</div>
             <div class="play"><div class="w-12 h-12 rounded-full glass grid place-items-center text-white group-hover:scale-110 transition">▶</div></div>
-            <span class="absolute top-3 left-3 pill !text-white !border-white/30 !bg-black/30 text-[11px]">🔥 Viral</span>
+            <span class="absolute top-3 left-3 pill !text-white !border-white/30 !bg-black/30 text-[11px]">${badgeFor(feed)}</span>
             <div class="absolute bottom-3 right-3 flex flex-col gap-3 text-white/90 text-lg"><span>♡</span><span>💬</span><span>↗</span></div>
-          </div>
+          </div></a>
           <div class="p-4">
-            <p class="font-semibold truncate">${p.title}</p>
+            <a href="product.html?id=${p.id}" class="font-semibold truncate block hover:text-white">${p.title}</a>
             <p class="text-xs text-zinc-400 mt-0.5">${p.category}</p>
             <div class="flex items-center justify-between mt-3">
               <span class="font-display font-bold text-lg">$${p.price}</span>
               <button class="btn btn-primary btn-sm" onclick="Cart.add('${p.id}')">Shop Now</button>
             </div>
           </div>
-        </div>`).join("");
+        </div>`;}
+      document.querySelectorAll(".tt-row").forEach(row=>{const feed=row.dataset.feed;const items=feeds[feed]||[];row.innerHTML=items.length?items.map((p,i)=>card(p,i,feed)).join(""):'<p class="text-zinc-500 text-sm col-span-full">Products will appear here.</p>';});
       if(window.wireReveal2)wireReveal2();
     })();
   </script>

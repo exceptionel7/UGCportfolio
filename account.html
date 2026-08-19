@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>My Account | Exceptionel</title>
-  <meta name="description" content="Exceptionel account dashboards for customers, creators and brands — orders, downloads, campaigns, earnings and more." />
+  <title>Dashboard | Exceptionel</title>
+  <meta name="description" content="Your Exceptionel dashboard — brands, creators and customers manage campaigns, content, orders, downloads, courses and earnings." />
   <meta name="robots" content="noindex" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><text y='20' font-size='20'>✦</text></svg>" />
   <script src="https://cdn.tailwindcss.com"></script>
@@ -16,102 +16,353 @@
 <body class="bg-aura font-sans">
   <div id="site-header"></div>
   <main class="relative z-10">
-    <section class="section !pb-6">
-      <div class="container-x">
-        <span class="pill reveal mb-4">My Account</span>
-        <h1 class="reveal d1 font-display font-bold" style="font-size:clamp(1.9rem,4.5vw,3rem)">Your Exceptionel dashboard</h1>
-        <p class="reveal d2 text-zinc-400 mt-3 text-sm max-w-2xl">Demo dashboards backed by local data. Secure authentication, invoices, shipment tracking and payouts connect to real services once the backend is wired (see README).</p>
-        <!-- role switch -->
-        <div class="flex flex-wrap gap-2 mt-6">
-          <button class="pill chip role active" data-role="customer">👤 Customer</button>
-          <button class="pill chip role" data-role="creator">🎬 Creator</button>
-          <button class="pill chip role" data-role="brand">🏷️ Brand</button>
-        </div>
-      </div>
-    </section>
-
-    <section class="section !pt-2">
-      <div class="container-x grid lg:grid-cols-[240px_1fr] gap-8 items-start">
-        <aside class="card p-4 lg:sticky lg:top-24">
-          <nav id="subnav" class="grid gap-1"></nav>
-        </aside>
-        <div id="panel" class="min-h-[300px]"></div>
-      </div>
-    </section>
+    <section class="section !pt-10 !pb-6"><div class="container-x">
+      <div id="dashHead"></div>
+    </div></section>
+    <section class="section !pt-0"><div class="container-x">
+      <div id="dashRoot" class="grid lg:grid-cols-[240px_1fr] gap-8 items-start"></div>
+    </div></section>
   </main>
   <div id="site-footer"></div>
   <script src="assets/js/data.js"></script>
+  <script src="assets/js/store.js"></script>
   <script src="assets/js/components.js"></script>
   <script src="assets/js/app.js"></script>
   <script>
   (function(){
     const $=s=>document.querySelector(s);
-    const menus={
-      customer:[["orders","Orders","🧾"],["downloads","Digital Downloads","⬇️"],["invoices","Invoices","📄"],["tracking","Order Tracking","🚚"],["subscriptions","Subscriptions","🔁"],["profile","Profile & Addresses","⚙️"],["support","Support","💬"]],
-      creator:[["profile","Creator Profile","🪪"],["portfolio","Portfolio","🗂️"],["campaigns","Apply to Campaigns","📢"],["assignments","Assignments","🎯"],["uploads","Upload Videos","⬆️"],["earnings","Earnings & Payments","💰"],["messages","Brand Messages","✉️"]],
-      brand:[["profile","Company Profile","🏢"],["submit","Submit Campaign","➕"],["creators","Select Creators","👥"],["review","Review Videos","🎬"],["status","Campaign Status","📊"],["downloads","Download Final Videos","⬇️"],["invoices","Invoices","📄"]]
-    };
-    let role="customer", tab="orders";
-
-    function orders(){ return JSON.parse(localStorage.getItem("exc_orders")||"[]"); }
-    function money(n){return n===0?"Free":"$"+Number(n).toLocaleString();}
+    const money=n=>n===0?"$0":"$"+Number(n||0).toLocaleString();
+    const esc=s=>(s||"").replace(/</g,"&lt;");
     function findItem(id){return (EXC_DATA.products||[]).concat(EXC_DATA.digitalProducts||[],EXC_DATA.courses||[]).find(p=>p.id===id);}
-
+    const STATUS_COLORS={Draft:"#71717a",Open:"#22d3ee",Applications:"#60a5fa",'Creator Selected':"#a855f7","In Production":"#f59e0b",Submitted:"#f472b6","Revision Requested":"#f43f5e",Approved:"#34d399",Completed:"#10b981"};
+    function badge(status){return `<span class="pill" style="border-color:${STATUS_COLORS[status]||'#555'};color:${STATUS_COLORS[status]||'#aaa'}">${status}</span>`;}
+    function card(inner,cls=""){return `<div class="card p-5 ${cls}">${inner}</div>`;}
     function empty(msg){return `<div class="card p-10 text-center text-zinc-400">${msg}</div>`;}
-    function card(inner){return `<div class="card p-6">${inner}</div>`;}
 
-    const views={
-      // ---- CUSTOMER ----
-      orders(){const o=orders(); if(!o.length)return empty('No orders yet. <a href="shop.html" class="text-gradient font-semibold">Start shopping →</a>');
-        return o.slice().reverse().map(ord=>card(`<div class="flex flex-wrap justify-between gap-2"><div><p class="font-semibold">Order ${ord.id}</p><p class="text-xs text-zinc-500">${new Date(ord.at).toLocaleString()}</p></div><span class="pill">${money(ord.total)}</span></div>
-        <div class="mt-3 grid gap-2">${ord.items.map(it=>{const p=findItem(it.id);return p?`<div class="flex items-center gap-3 text-sm"><span class="w-8 h-8 rounded-lg grid place-items-center" style="background:linear-gradient(135deg,${p.grad[0]},${p.grad[1]})">${p.emoji}</span><span class="flex-1">${p.title} × ${it.qty}</span><span class="text-zinc-400">${money(p.price*it.qty)}</span></div>`:""}).join("")}</div>`)).join("");},
-      downloads(){const o=orders();const digital=[];o.forEach(ord=>ord.items.forEach(it=>{const p=(EXC_DATA.digitalProducts||[]).concat(EXC_DATA.courses||[]).find(x=>x.id===it.id);if(p)digital.push(p);}));
-        if(!digital.length)return empty('No digital downloads yet. Purchase digital products or courses to unlock secure downloads here.');
-        return `<div class="grid sm:grid-cols-2 gap-4">${digital.map(p=>card(`<div class="flex items-center gap-3"><span class="w-10 h-10 rounded-lg grid place-items-center text-xl" style="background:linear-gradient(135deg,${p.grad[0]},${p.grad[1]})">${p.emoji}</span><div class="flex-1"><p class="font-semibold text-sm">${p.title}</p></div><button class="btn btn-primary btn-sm" onclick="toast('Secure download link generates once file storage is connected.')">Download</button></div>`)).join("")}</div>`;},
-      invoices(){const o=orders();if(!o.length)return empty("No invoices yet.");return o.slice().reverse().map(ord=>card(`<div class="flex justify-between items-center"><div><p class="font-semibold">Invoice ${ord.id}</p><p class="text-xs text-zinc-500">${new Date(ord.at).toLocaleDateString()} · ${money(ord.total)}</p></div><button class="btn btn-ghost btn-sm" onclick="toast('PDF invoices generate once billing is connected.')">View PDF</button></div>`)).join("");},
-      tracking(){const o=orders();if(!o.length)return empty("No shipments to track.");return o.slice().reverse().map(ord=>card(`<p class="font-semibold mb-3">Order ${ord.id}</p><div class="flex items-center gap-2 text-xs"><span class="pill" style="background:var(--grad);color:#fff;border:none">Processing</span><span class="flex-1 h-px bg-white/10"></span><span class="pill">Shipped</span><span class="flex-1 h-px bg-white/10"></span><span class="pill">Delivered</span></div><p class="text-xs text-zinc-500 mt-3">Live tracking numbers appear once fulfilment is connected.</p>`)).join("");},
-      subscriptions(){return card('<p class="font-semibold">Memberships</p><p class="text-sm text-zinc-400 mt-2">No active subscription. Explore <a href="creator-academy.html#memberships" class="text-gradient">Creator Pro & Brand Pro →</a></p>');},
-      profile(){return card(`<form data-form="profile_customer" data-success="Profile saved locally." class="grid sm:grid-cols-2 gap-4"><div><label class="label">Full name</label><input class="field" name="name"></div><div><label class="label">Email</label><input class="field" type="email" name="email"></div><div class="sm:col-span-2"><label class="label">Shipping address</label><input class="field" name="address"></div><div class="sm:col-span-2"><button class="btn btn-primary">Save Profile</button><p data-msg class="hide text-sm text-emerald-400 mt-2"></p></div></form>`);},
-      support(){return card('<p class="font-semibold">Need help?</p><p class="text-sm text-zinc-400 mt-2 mb-4">Our team is here for order issues and questions.</p><a href="contact.html#customers" class="btn btn-primary">Contact Support</a>');},
-      // ---- CREATOR ----
-      portfolio(){return card('<p class="font-semibold mb-3">Your portfolio</p><div class="grid grid-cols-3 gap-3">'+[1,2,3].map(()=>'<div class="vframe glass grid place-items-center text-zinc-500 text-sm">+ Upload</div>').join("")+'</div><button class="btn btn-ghost btn-sm mt-4" onclick="toast(\'Video uploads enable once media storage is connected.\')">Upload Video</button>');},
-      campaigns(){return card('<p class="font-semibold">Open brand campaigns</p><p class="text-sm text-zinc-400 mt-2">No open campaigns to display yet. Available briefs will appear here for you to apply.</p>');},
-      assignments(){return empty("No active assignments yet.");},
-      uploads(){return card('<p class="font-semibold">Submit completed videos</p><div class="vframe glass grid place-items-center text-zinc-500 mt-3 max-w-[200px]">Drop video</div><button class="btn btn-ghost btn-sm mt-4" onclick="toast(\'Enable uploads by connecting media storage.\')">Upload</button>');},
-      earnings(){return card('<p class="font-semibold">Earnings</p><div class="font-display font-bold text-4xl text-gradient mt-2">—</div><p class="text-xs text-zinc-500 mt-1">Earnings display once payouts are connected. No fake figures shown.</p>');},
-      messages(){return empty("No brand messages yet.");},
-      // ---- BRAND ----
-      submit(){return card('<p class="font-semibold mb-3">Submit a campaign</p><a href="for-brands.html#apply" class="btn btn-primary">Open Campaign Form</a>');},
-      creators(){return card('<p class="font-semibold">Select creators</p><p class="text-sm text-zinc-400 mt-2">Browse and select approved creators for your campaign. Creator roster appears here once creators are onboarded.</p>');},
-      review(){return empty("No videos submitted for review yet.");},
-      status(){const c=JSON.parse(localStorage.getItem("exc_brand_campaigns")||"[]");if(!c.length)return empty('No campaigns yet. <a href="for-brands.html#apply" class="text-gradient font-semibold">Submit one →</a>');return c.slice().reverse().map(x=>card(`<div class="flex justify-between"><div><p class="font-semibold">${x.product||x.company||"Campaign"}</p><p class="text-xs text-zinc-500">${x.num_videos||"?"} videos · ${new Date(x.at).toLocaleDateString()}</p></div><span class="pill" style="background:var(--grad);color:#fff;border:none">Submitted</span></div>`)).join("");},
+    // ---- gate ----
+    function gate(){
+      $("#dashHead").innerHTML="";
+      $("#dashRoot").innerHTML=`<div class="lg:col-span-2"><div class="card p-10 text-center max-w-lg mx-auto">
+        <div class="text-5xl mb-4">🔐</div>
+        <h2 class="font-display font-bold text-2xl">Sign in to your dashboard</h2>
+        <p class="text-zinc-400 mt-2">Brands, creators and shoppers all manage everything here.</p>
+        <div class="flex gap-3 justify-center mt-6">
+          <button class="btn btn-primary" onclick="Auth.open('signup')">Create account</button>
+          <button class="btn btn-ghost" onclick="Auth.open('login')">Log in</button>
+        </div>
+        <div class="grid sm:grid-cols-3 gap-3 mt-8 text-left">
+          <button class="card p-4 hover:border-white/20" onclick="Auth.open('signup',{role:'brand'})"><div class="text-2xl">🏷️</div><p class="font-semibold text-sm mt-1">I'm a Brand</p><p class="text-xs text-zinc-500">Hire creators</p></button>
+          <button class="card p-4 hover:border-white/20" onclick="Auth.open('signup',{role:'creator'})"><div class="text-2xl">🎬</div><p class="font-semibold text-sm mt-1">I'm a Creator</p><p class="text-xs text-zinc-500">Get hired</p></button>
+          <button class="card p-4 hover:border-white/20" onclick="Auth.open('signup',{role:'customer'})"><div class="text-2xl">🛍️</div><p class="font-semibold text-sm mt-1">I'm a Shopper</p><p class="text-xs text-zinc-500">Shop & learn</p></button>
+        </div>
+      </div></div>`;
+    }
+
+    // ---- menus per role ----
+    const MENUS={
+      brand:[["overview","Overview","📊"],["campaigns","Campaigns","📢"],["creators","Find Creators","👥"],["messages","Messages","✉️"],["deliverables","Deliverables","🎬"],["invoices","Invoices","📄"],["payments","Payments","💳"],["profile","Company Profile","🏢"],["settings","Settings","⚙️"]],
+      creator:[["overview","Overview","📊"],["available","Available Campaigns","📢"],["mine","My Campaigns","🎯"],["portfolio","Portfolio","🗂️"],["messages","Messages","✉️"],["earnings","Earnings","💰"],["payments","Payments","💳"],["profile","Profile","🪪"],["settings","Settings","⚙️"]],
+      customer:[["orders","Orders","🧾"],["downloads","Digital Downloads","⬇️"],["courses","Courses","🎓"],["wishlist","Wishlist","♥"],["addresses","Addresses","📍"],["payments","Payment History","💳"],["profile","Profile","👤"],["settings","Settings","⚙️"]],
+      admin:[["overview","Overview","📊"],["admin","Open Admin Panel","🛠️"]]
     };
-    // shared reused
-    views.profileBrand=()=>card(`<form data-form="profile_brand" data-success="Company profile saved." class="grid sm:grid-cols-2 gap-4"><div><label class="label">Company</label><input class="field" name="company"></div><div><label class="label">Website</label><input class="field" name="website"></div><div class="sm:col-span-2"><label class="label">About</label><textarea class="field" name="about" rows="3"></textarea></div><div class="sm:col-span-2"><button class="btn btn-primary">Save</button><p data-msg class="hide text-sm text-emerald-400 mt-2"></p></div></form>`);
-    views.profileCreator=()=>card(`<form data-form="profile_creator" data-success="Creator profile saved." class="grid sm:grid-cols-2 gap-4"><div><label class="label">Name</label><input class="field" name="name"></div><div><label class="label">Niches</label><input class="field" name="niches"></div><div class="sm:col-span-2"><label class="label">Bio</label><textarea class="field" name="bio" rows="3"></textarea></div><div class="sm:col-span-2"><label class="label">Payment info</label><input class="field" name="payment" placeholder="Connect payout provider later"></div><div class="sm:col-span-2"><button class="btn btn-primary">Save</button><p data-msg class="hide text-sm text-emerald-400 mt-2"></p></div></form>`);
 
-    function resolve(){
-      // profile is role-specific
-      if(tab==="profile"&&role==="creator")return views.profileCreator();
-      if(tab==="profile"&&role==="brand")return views.profileBrand();
-      if(tab==="downloads"&&role==="brand")return empty("Final approved videos download here once a campaign completes.");
-      return (views[tab]||(()=>empty("Nothing here yet.")))();
-    }
-    function renderSubnav(){
-      $("#subnav").innerHTML=menus[role].map(([k,label,ic])=>`<button class="text-left px-3 py-2 rounded-xl text-sm ${k===tab?'text-white':'text-zinc-400'} hover:text-white transition ${k===tab?'bg-white/5':''}" data-tab="${k}"><span class="mr-2">${ic}</span>${label}</button>`).join("");
-      $("#subnav").querySelectorAll("[data-tab]").forEach(b=>b.addEventListener("click",()=>{tab=b.dataset.tab;render();}));
-    }
-    function render(){renderSubnav();$("#panel").innerHTML=resolve();if(window.__wireFormsAgain)window.__wireFormsAgain();rewireForms();}
-    function rewireForms(){document.querySelectorAll("#panel [data-form]").forEach(form=>{if(form.__wired)return;form.__wired=true;form.addEventListener("submit",e=>{e.preventDefault();const key=form.dataset.form;const data=Object.fromEntries(new FormData(form));const s=JSON.parse(localStorage.getItem("exc_"+key)||"[]");s.push({...data,at:new Date().toISOString()});localStorage.setItem("exc_"+key,JSON.stringify(s));const m=form.querySelector("[data-msg]");if(m){m.textContent=form.dataset.success||"Saved.";m.classList.remove("hide");}toast("Saved");});});}
+    let U=null, role=null, tab=null, view=null; // view = {campaign:id} for detail
 
-    document.querySelectorAll(".role").forEach(b=>b.addEventListener("click",()=>{
-      document.querySelectorAll(".role").forEach(x=>x.classList.remove("active"));b.classList.add("active");
-      role=b.dataset.role; tab=menus[role][0][0]; render();
-    }));
-    // deep-link (#orders etc.)
-    const h=location.hash.replace("#","");
-    if(h&&menus.customer.some(m=>m[0]===h))tab=h;
-    render();
+    // ================= BRAND =================
+    const brand={
+      overview(){
+        const cs=Store.brandCampaigns(U.id);
+        const byStatus={};cs.forEach(c=>byStatus[c.status]=(byStatus[c.status]||0)+1);
+        const box=(n,l)=>`<div class="card p-5"><div class="font-display font-bold text-3xl">${n}</div><p class="text-sm text-zinc-400">${l}</p></div>`;
+        return `<div class="grid sm:grid-cols-3 gap-4 mb-5">${box(cs.length,"Total campaigns")}${box(cs.filter(c=>["Open","Applications"].includes(c.status)).length,"Open for creators")}${box(cs.filter(c=>c.status==="Completed").length,"Completed")}</div>
+          ${card(`<div class="flex items-center justify-between"><div><h3 class="font-semibold">Launch a UGC campaign</h3><p class="text-sm text-zinc-400">Post a brief, review applicants, approve content.</p></div><button class="btn btn-primary" onclick="Dash.go('campaigns');Dash.newCampaign()">New Campaign</button></div>`)}
+          <div class="mt-4">${cs.length?cs.slice(-4).reverse().map(brand.campaignRow).join(""):empty("No campaigns yet. Create your first one.")}</div>`;
+      },
+      campaignRow(c){return `<div class="card p-4 mb-3 flex flex-wrap items-center justify-between gap-3 cursor-pointer hover:border-white/20" onclick="Dash.openCampaign('${c.id}')">
+        <div><p class="font-semibold">${esc(c.title)}</p><p class="text-xs text-zinc-500">${esc(c.product||"")} · ${c.numVideos} video(s) · ${Store.applicationsFor(c.id).length} applicant(s)</p></div>
+        ${badge(c.status)}</div>`;},
+      campaigns(){
+        const cs=Store.brandCampaigns(U.id);
+        return `<div class="flex items-center justify-between mb-4"><h2 class="font-display font-bold text-2xl">Campaigns</h2><button class="btn btn-primary btn-sm" onclick="Dash.newCampaign()">+ New Campaign</button></div>
+          <div id="newCampaignSlot"></div>
+          ${cs.length?cs.slice().reverse().map(brand.campaignRow).join(""):empty("No campaigns yet.")}`;
+      },
+      creators(){
+        const list=Store.creators();
+        return `<div class="flex items-center justify-between mb-4"><h2 class="font-display font-bold text-2xl">Find Creators</h2><a href="marketplace.html" class="btn btn-ghost btn-sm">Open Marketplace</a></div>
+          ${list.length?`<div class="grid sm:grid-cols-2 gap-4">${list.map(c=>`<div class="card p-4"><div class="flex items-center gap-3"><span class="w-11 h-11 rounded-full grid place-items-center font-bold text-white" style="background:var(--grad)">${(c.name||"?")[0].toUpperCase()}</span><div class="min-w-0"><p class="font-semibold truncate">${esc(c.name)}</p><p class="text-xs text-zinc-500 truncate">${esc(c.location||"—")} · from ${c.rateFrom?money(c.rateFrom):"—"}</p></div></div><p class="text-xs text-zinc-400 mt-2 truncate">${esc((c.niches||[]).join(", ")||"No niches yet")}</p><a href="creator.html?id=${c.id}" class="btn btn-ghost btn-sm w-full mt-3">View Creator</a></div>`).join("")}</div>`:empty("No creators have joined yet. As creators sign up, they'll appear here and in the marketplace.")}`;
+      },
+      messages(){ return brand.threads(); },
+      threads(){
+        const cs=Store.brandCampaigns(U.id).filter(c=>c.selectedCreatorId);
+        if(!cs.length)return empty("No conversations yet. Messaging opens once you select a creator for a campaign.");
+        return cs.map(c=>`<div class="card p-4 mb-3 flex items-center justify-between"><div><p class="font-semibold">${esc(c.title)}</p><p class="text-xs text-zinc-500">with ${esc((Store.getUser(c.selectedCreatorId)||{}).name||"creator")}</p></div><button class="btn btn-ghost btn-sm" onclick="Dash.openCampaign('${c.id}')">Open thread</button></div>`).join("");
+      },
+      deliverables(){
+        const cs=Store.brandCampaigns(U.id);
+        const rows=[];cs.forEach(c=>Store.deliverablesFor(c.id).forEach(d=>rows.push({c,d})));
+        if(!rows.length)return empty("No deliverables submitted yet.");
+        return rows.reverse().map(({c,d})=>card(`<div class="flex items-center justify-between gap-3"><div><p class="font-semibold">${esc(d.title)}</p><p class="text-xs text-zinc-500">${esc(c.title)} · ${new Date(d.createdAt).toLocaleDateString()}</p>${d.note?`<p class="text-sm text-zinc-400 mt-1">${esc(d.note)}</p>`:""}</div>${badge(d.status==="submitted"?"Submitted":d.status==="revision"?"Revision Requested":"Approved")}</div>
+          <div class="flex gap-2 mt-3">${d.status!=="approved"?`<button class="btn btn-ghost btn-sm" onclick="Dash.requestRevision('${d.id}')">Request revision</button><button class="btn btn-primary btn-sm" onclick="Dash.approveDeliverable('${d.id}','${c.id}')">Approve</button>`:`<span class="text-sm text-emerald-400">Approved ✓</span>`}</div>`,"mb-3")).join("");
+      },
+      invoices(){
+        const pays=Store.userPayments(U.id).filter(p=>p.kind==="order");
+        const camPays=Store.campaigns().filter(c=>c.brandId===U.id&&c.status==="Completed");
+        return card(`<h3 class="font-semibold mb-1">Invoices</h3><p class="text-sm text-zinc-400">PDF invoices generate once billing (Stripe) is connected. Completed campaigns and orders are listed below.</p>`)+
+          `<div class="mt-3">${camPays.length?camPays.map(c=>card(`<div class="flex justify-between"><span>${esc(c.title)} — campaign</span><span class="text-zinc-400">${c.budget?("$"+c.budget):"—"}</span></div>`,"mb-2")).join(""):empty("No invoices yet.")}</div>`;
+      },
+      payments(){ return dashPayments(); },
+      profile(){
+        return card(`<h3 class="font-semibold mb-4">Company Profile</h3><form data-save class="grid sm:grid-cols-2 gap-4">
+          <div><label class="label">Company / brand name</label><input class="field" name="name" value="${esc(U.name||"")}"></div>
+          <div><label class="label">Website</label><input class="field" name="website" value="${esc(U.website||"")}"></div>
+          <div class="sm:col-span-2"><label class="label">About your brand</label><textarea class="field" name="about" rows="3">${esc(U.about||"")}</textarea></div>
+          <div class="sm:col-span-2"><button class="btn btn-primary">Save profile</button></div></form>`);
+      },
+      settings(){ return dashSettings(); },
+    };
+
+    // ================= CREATOR =================
+    const creator={
+      overview(){
+        const earn=Store.userPayments(U.id).filter(p=>p.kind==="campaign").reduce((s,p)=>s+(p.amount||0),0);
+        const active=Store.creatorCampaigns(U.id).filter(c=>!["Completed"].includes(c.status)).length;
+        const apps=Store.creatorApplications(U.id).length;
+        const box=(n,l)=>`<div class="card p-5"><div class="font-display font-bold text-3xl">${n}</div><p class="text-sm text-zinc-400">${l}</p></div>`;
+        const done=[U.bio,U.location,(U.niches||[]).length,(U.portfolio||[]).length,U.rateFrom].filter(Boolean).length;
+        return `<div class="grid sm:grid-cols-3 gap-4 mb-5">${box(active,"Active campaigns")}${box(apps,"Applications")}${box(earn?money(earn):"$0","Earnings recorded")}</div>
+          ${card(`<div class="flex items-center justify-between"><div><h3 class="font-semibold">Profile strength</h3><p class="text-sm text-zinc-400">${done}/5 sections complete — a full profile wins more campaigns.</p></div><button class="btn btn-ghost btn-sm" onclick="Dash.go('profile')">Complete profile</button></div><div class="h-2 rounded-full bg-white/5 mt-3 overflow-hidden"><div style="width:${done/5*100}%;height:100%;background:var(--grad)"></div></div>`)}
+          <div class="mt-4"><a href="marketplace.html" class="btn btn-ghost btn-sm mr-2">View how brands see you</a><button class="btn btn-primary btn-sm" onclick="Dash.go('available')">Browse campaigns</button></div>`;
+      },
+      available(){
+        const open=Store.openCampaigns();
+        const mine=Store.creatorApplications(U.id).map(a=>a.campaignId);
+        if(!open.length)return empty("No open campaigns right now. Check back soon — new briefs appear here.");
+        return open.map(c=>{const b=Store.getUser(c.brandId)||{};const applied=mine.includes(c.id);return card(`<div class="flex items-center justify-between gap-3"><div><p class="font-semibold">${esc(c.title)}</p><p class="text-xs text-zinc-500">${esc(b.name||"Brand")} · ${c.numVideos} video(s)${c.budget?` · budget ${esc(String(c.budget))}`:""}</p></div>${badge(c.status)}</div>
+          ${c.brief?`<p class="text-sm text-zinc-400 mt-2">${esc(c.brief)}</p>`:""}${c.objective?`<p class="text-xs text-zinc-500 mt-1">Objective: ${esc(c.objective)}</p>`:""}
+          <div class="mt-3">${applied?`<span class="text-sm text-emerald-400">Applied ✓</span>`:`<button class="btn btn-primary btn-sm" onclick="Dash.apply('${c.id}')">Apply to campaign</button>`}</div>`,"mb-3");}).join("");
+      },
+      mine(){
+        const cs=Store.creatorCampaigns(U.id);
+        const applied=Store.creatorApplications(U.id).filter(a=>a.status!=="approved");
+        let html="";
+        if(applied.length){html+=`<h3 class="font-semibold mb-2 text-zinc-400 text-sm uppercase tracking-wider">Pending applications</h3>`+applied.map(a=>{const c=Store.campaign(a.campaignId)||{};return card(`<div class="flex justify-between"><span>${esc(c.title||"Campaign")}</span>${badge("Applications")}</div>`,"mb-2");}).join("");}
+        html+=`<h3 class="font-semibold mb-2 mt-4 text-zinc-400 text-sm uppercase tracking-wider">Assigned campaigns</h3>`;
+        html+= cs.length? cs.map(c=>`<div class="card p-4 mb-3 flex items-center justify-between cursor-pointer hover:border-white/20" onclick="Dash.openCampaign('${c.id}')"><div><p class="font-semibold">${esc(c.title)}</p><p class="text-xs text-zinc-500">${esc((Store.getUser(c.brandId)||{}).name||"Brand")}</p></div>${badge(c.status)}</div>`).join("") : empty("No assigned campaigns yet. Apply to open campaigns to get selected.");
+        return html;
+      },
+      portfolio(){
+        const p=U.portfolio||[];
+        return `<div class="flex items-center justify-between mb-4"><h2 class="font-display font-bold text-2xl">Portfolio</h2><button class="btn btn-primary btn-sm" onclick="Dash.addPortfolio()">+ Add item</button></div>
+          <div class="card p-5 mb-4"><div class="grid sm:grid-cols-3 gap-4">
+            <div><label class="label">Starting rate ($)</label><input id="rateFrom" class="field" type="number" value="${U.rateFrom||""}" placeholder="e.g. 100"></div>
+            <div class="sm:col-span-2"><label class="label">Content categories (comma separated)</label><input id="catInput" class="field" value="${esc((U.categories||[]).join(", "))}" placeholder="Product demo, Unboxing, Testimonial"></div>
+          </div><button class="btn btn-ghost btn-sm mt-3" onclick="Dash.saveRates()">Save rate & categories</button></div>
+          ${p.length?`<div class="grid grid-cols-2 sm:grid-cols-3 gap-3">${p.map((x,i)=>`<div class="card overflow-hidden"><div class="vframe" style="background:linear-gradient(160deg,${x.grad?x.grad[0]:'#7c3aed'},${x.grad?x.grad[1]:'#ec4899'})"><div class="absolute inset-0 grid place-items-center text-4xl">${x.emoji||"🎬"}</div></div><div class="p-2 flex items-center justify-between"><span class="text-xs truncate">${esc(x.title||"Clip")}</span><button class="text-zinc-500 hover:text-white text-xs" onclick="Dash.delPortfolio(${i})">✕</button></div></div>`).join("")}</div>`:empty("No portfolio items yet. Add videos/images to attract brands.")}`;
+      },
+      messages(){
+        const cs=Store.creatorCampaigns(U.id);
+        if(!cs.length)return empty("No conversations yet.");
+        return cs.map(c=>`<div class="card p-4 mb-3 flex items-center justify-between"><div><p class="font-semibold">${esc(c.title)}</p><p class="text-xs text-zinc-500">with ${esc((Store.getUser(c.brandId)||{}).name||"brand")}</p></div><button class="btn btn-ghost btn-sm" onclick="Dash.openCampaign('${c.id}')">Open thread</button></div>`).join("");
+      },
+      earnings(){
+        const pays=Store.userPayments(U.id).filter(p=>p.kind==="campaign");
+        const total=pays.reduce((s,p)=>s+(p.amount||0),0);
+        return card(`<h3 class="font-semibold">Earnings</h3><div class="font-display font-bold text-4xl text-gradient mt-2">${money(total)}</div><p class="text-xs text-zinc-500 mt-1">Total recorded from completed campaigns. Real payouts connect via Stripe Connect.</p>`)+
+          `<div class="mt-3">${pays.length?pays.reverse().map(p=>{const c=Store.campaign(p.ref)||{};return card(`<div class="flex justify-between"><span>${esc(c.title||"Campaign")}</span><span class="text-emerald-400">${money(p.amount)}</span></div>`,"mb-2");}).join(""):empty("No earnings recorded yet.")}</div>`;
+      },
+      payments(){ return dashPayments(); },
+      profile(){
+        return card(`<h3 class="font-semibold mb-4">Creator Profile</h3><form data-save class="grid sm:grid-cols-2 gap-4">
+          <div><label class="label">Display name</label><input class="field" name="name" value="${esc(U.name||"")}"></div>
+          <div><label class="label">Location</label><input class="field" name="location" value="${esc(U.location||"")}"></div>
+          <div class="sm:col-span-2"><label class="label">Bio</label><textarea class="field" name="bio" rows="3">${esc(U.bio||"")}</textarea></div>
+          <div><label class="label">Languages (comma separated)</label><input class="field" name="languages" value="${esc((U.languages||[]).join(", "))}"></div>
+          <div><label class="label">Niches (comma separated)</label><input class="field" name="niches" value="${esc((U.niches||[]).join(", "))}"></div>
+          <div><label class="label">Content style (comma separated)</label><input class="field" name="styles" value="${esc((U.styles||[]).join(", "))}"></div>
+          <div><label class="label">Starting rate ($)</label><input class="field" type="number" name="rateFrom" value="${U.rateFrom||""}"></div>
+          <div class="sm:col-span-2"><label class="label">Social links</label><input class="field" name="socials" value="${esc(U.socials||"")}" placeholder="TikTok, Instagram, YouTube…"></div>
+          <div class="sm:col-span-2"><button class="btn btn-primary">Save profile</button> <span class="text-xs text-zinc-500 ml-2">Your public profile: <a class="text-gradient" href="creator.html?id=${U.id}">creator.html?id=…</a></span></div></form>`);
+      },
+      settings(){ return dashSettings(); },
+    };
+
+    // ================= CUSTOMER =================
+    const customer={
+      orders(){
+        const o=Store.userOrders(U.id);
+        if(!o.length)return empty('No orders yet. <a href="shop.html" class="text-gradient font-semibold">Start shopping →</a>');
+        return o.slice().reverse().map(ord=>card(`<div class="flex flex-wrap justify-between gap-2"><div><p class="font-semibold">Order ${ord.id}</p><p class="text-xs text-zinc-500">${new Date(ord.at).toLocaleString()}</p></div><span class="pill">${money(ord.total)}</span></div>
+          <div class="mt-3 grid gap-2">${(ord.items||[]).map(it=>{const p=findItem(it.id);return p?`<div class="flex items-center gap-3 text-sm"><span class="w-8 h-8 rounded-lg grid place-items-center" style="background:linear-gradient(135deg,${p.grad[0]},${p.grad[1]})">${p.emoji}</span><span class="flex-1">${esc(p.title)} × ${it.qty}</span><span class="text-zinc-400">${money(p.price*it.qty)}</span></div>`:"";}).join("")}</div>
+          <div class="flex items-center gap-2 mt-3 text-xs"><span class="pill" style="background:var(--grad);color:#fff;border:none">Processing</span><span class="flex-1 h-px bg-white/10"></span><span class="pill">Shipped</span><span class="flex-1 h-px bg-white/10"></span><span class="pill">Delivered</span></div>`,"mb-3")).join("");
+      },
+      downloads(){
+        const o=Store.userOrders(U.id);const items=[];o.forEach(ord=>(ord.items||[]).forEach(it=>{const p=(EXC_DATA.digitalProducts||[]).concat(EXC_DATA.courses||[]).find(x=>x.id===it.id);if(p&&!items.find(y=>y.id===p.id))items.push(p);}));
+        if(!items.length)return empty("No digital downloads yet. Buy digital products or courses to unlock secure downloads here.");
+        return `<div class="grid sm:grid-cols-2 gap-4">${items.map(p=>card(`<div class="flex items-center gap-3"><span class="w-10 h-10 rounded-lg grid place-items-center text-xl" style="background:linear-gradient(135deg,${p.grad[0]},${p.grad[1]})">${p.emoji}</span><div class="flex-1 min-w-0"><p class="font-semibold text-sm truncate">${esc(p.title)}</p></div><button class="btn btn-primary btn-sm" onclick="toast('Secure, signed download links generate once file storage is connected.')">Download</button></div>`)).join("")}</div>`;
+      },
+      courses(){
+        const enr=Store.enrolledCourses();
+        if(!enr.length)return empty('Not enrolled in any courses yet. <a href="creator-academy.html" class="text-gradient font-semibold">Browse the Academy →</a>');
+        return `<div class="grid sm:grid-cols-2 gap-4">${enr.map(pr=>{const c=(EXC_DATA.courses||[]).find(x=>x.id===pr.courseId);if(!c)return"";const pct=Math.round((pr.done.length/c.lessons.length)*100);return card(`<div class="flex items-center gap-3 mb-3"><span class="w-11 h-11 rounded-lg grid place-items-center text-xl" style="background:linear-gradient(135deg,${c.grad[0]},${c.grad[1]})">${c.emoji}</span><div><p class="font-semibold text-sm">${esc(c.title)}</p><p class="text-xs text-zinc-500">${pr.done.length}/${c.lessons.length} lessons · ${pr.completed?"Completed ✓":pct+"%"}</p></div></div><div class="h-2 rounded-full bg-white/5 overflow-hidden mb-3"><div style="width:${pct}%;height:100%;background:var(--grad)"></div></div><a href="course.html?id=${c.id}" class="btn btn-ghost btn-sm w-full">${pr.done.length?"Continue":"Start"} learning</a>`);}).join("")}</div>`;
+      },
+      wishlist(){
+        const w=Wish.get();const items=(EXC_DATA.products||[]).filter(p=>w.includes(p.id));
+        if(!items.length)return empty('Your wishlist is empty. <a href="shop.html" class="text-gradient font-semibold">Find something you love →</a>');
+        return `<div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">${items.map(p=>card(`<div class="flex items-center gap-3"><span class="w-12 h-12 rounded-lg grid place-items-center text-xl" style="background:linear-gradient(135deg,${p.grad[0]},${p.grad[1]})">${p.emoji}</span><div class="flex-1 min-w-0"><p class="font-semibold text-sm truncate">${esc(p.title)}</p><p class="text-xs text-zinc-500">${money(p.price)}</p></div></div><div class="flex gap-2 mt-3"><button class="btn btn-primary btn-sm flex-1" onclick="Cart.add('${p.id}')">Add to cart</button><button class="btn btn-ghost btn-sm" onclick="Wish.toggle('${p.id}');Dash.render()">Remove</button></div>`)).join("")}</div>`;
+      },
+      addresses(){
+        return card(`<h3 class="font-semibold mb-4">Shipping Addresses</h3><form data-save class="grid gap-3">
+          <input class="field" name="address" value="${esc(U.address||"")}" placeholder="Street address">
+          <div class="grid sm:grid-cols-3 gap-3"><input class="field" name="city" value="${esc(U.city||"")}" placeholder="City"><input class="field" name="zip" value="${esc(U.zip||"")}" placeholder="ZIP / Postcode"><input class="field" name="country" value="${esc(U.country||"")}" placeholder="Country"></div>
+          <button class="btn btn-primary">Save address</button></form>`);
+      },
+      payments(){ return dashPayments(); },
+      profile(){
+        return card(`<h3 class="font-semibold mb-4">Profile</h3><form data-save class="grid sm:grid-cols-2 gap-4">
+          <div><label class="label">Name</label><input class="field" name="name" value="${esc(U.name||"")}"></div>
+          <div><label class="label">Email</label><input class="field" type="email" name="email" value="${esc(U.email||"")}"></div>
+          <div class="sm:col-span-2"><button class="btn btn-primary">Save profile</button></div></form>`);
+      },
+      settings(){ return dashSettings(); },
+    };
+
+    // shared
+    function dashPayments(){
+      const pays=Store.userPayments(U.id);
+      return card(`<h3 class="font-semibold mb-1">Payment History</h3><p class="text-sm text-zinc-400">Records of orders and campaign payments. Live processing connects via Stripe/PayPal (keys stay server-side).</p>`)+
+        `<div class="mt-3">${pays.length?pays.slice().reverse().map(p=>card(`<div class="flex justify-between text-sm"><div><p>${p.kind==="order"?"Order":p.kind==="campaign"?"Campaign payout":"Payment"} <span class="text-zinc-500">${esc(p.ref||"")}</span></p><p class="text-xs text-zinc-600">${new Date(p.at).toLocaleString()} · ${esc(p.status)}</p></div><span class="font-semibold">${money(p.amount)}</span></div>`,"mb-2")).join(""):empty("No payments yet.")}</div>`;
+    }
+    function dashSettings(){
+      return card(`<h3 class="font-semibold mb-4">Settings</h3>
+        <div class="grid gap-4">
+          <div><p class="text-sm text-zinc-400">Signed in as <b>${esc(U.email)}</b> (${U.role})</p></div>
+          <form data-save class="grid sm:grid-cols-2 gap-3"><input class="field" name="name" value="${esc(U.name||"")}" placeholder="Name"><button class="btn btn-ghost">Update name</button></form>
+          <div class="border-t border-white/10 pt-4 flex flex-wrap gap-2">
+            <button class="btn btn-ghost btn-sm" onclick="Store.logout();location.href='index.html'">Log out</button>
+            <button class="btn btn-ghost btn-sm !border-rose-500/40 !text-rose-400" onclick="Dash.deleteAccount()">Delete account</button>
+          </div>
+          <p class="text-xs text-zinc-600">Password changes, 2FA and secure sessions activate with the real auth backend.</p>
+        </div>`);
+    }
+
+    const VIEWS={brand,creator,customer};
+
+    // ================= CAMPAIGN DETAIL =================
+    function campaignDetail(id){
+      const c=Store.campaign(id); if(!c)return empty("Campaign not found.");
+      const isBrand=U.role==="brand"&&c.brandId===U.id;
+      const isCreator=U.role==="creator"&&c.selectedCreatorId===U.id;
+      const apps=Store.applicationsFor(id);
+      const dels=Store.deliverablesFor(id);
+      const brandU=Store.getUser(c.brandId)||{};
+      const otherId=isBrand?c.selectedCreatorId:c.brandId;
+
+      let html=`<button class="text-sm text-zinc-400 hover:text-white mb-3" onclick="Dash.closeCampaign()">← Back</button>
+        <div class="card p-5 mb-4"><div class="flex items-start justify-between gap-3 flex-wrap"><div><h2 class="font-display font-bold text-2xl">${esc(c.title)}</h2><p class="text-sm text-zinc-500">${esc(c.product||"")} · ${c.numVideos} video(s)${c.budget?` · budget ${esc(String(c.budget))}`:""}${c.deadline?` · due ${esc(c.deadline)}`:""}</p></div>${badge(c.status)}</div>
+        ${c.brief?`<p class="text-sm text-zinc-400 mt-3">${esc(c.brief)}</p>`:""}${c.objective?`<p class="text-xs text-zinc-500 mt-1">Objective: ${esc(c.objective)}</p>`:""}
+        ${isBrand&&c.status==="Draft"?`<button class="btn btn-primary btn-sm mt-4" onclick="Dash.publish('${id}')">Publish (open to creators)</button>`:""}
+        </div>`;
+
+      // Status tracker
+      html+=`<div class="card p-4 mb-4 overflow-x-auto"><div class="flex items-center gap-1 min-w-[640px]">${Store.STATUSES.map((s,i)=>{const active=Store.STATUSES.indexOf(c.status)>=i;return `<div class="flex items-center gap-1">${i>0?`<span class="w-6 h-px ${active?'bg-fuchsia-500':'bg-white/10'}"></span>`:""}<span class="pill text-[11px] ${active?'':'opacity-40'}" style="${active?`border-color:${STATUS_COLORS[s]};color:${STATUS_COLORS[s]}`:''}">${s}</span></div>`;}).join("")}</div></div>`;
+
+      // Brand: applications
+      if(isBrand){
+        html+=`<h3 class="font-semibold mb-2">Applications (${apps.length})</h3>`;
+        html+= apps.length? apps.map(a=>{const cu=Store.getUser(a.creatorId)||{};return card(`<div class="flex items-center justify-between gap-3"><div class="flex items-center gap-3"><span class="w-10 h-10 rounded-full grid place-items-center font-bold text-white" style="background:var(--grad)">${(cu.name||"?")[0].toUpperCase()}</span><div><p class="font-semibold text-sm">${esc(cu.name||"Creator")}</p><p class="text-xs text-zinc-500">${esc(cu.location||"")} ${cu.rateFrom?"· from "+money(cu.rateFrom):""}</p></div></div>${a.status==="approved"?'<span class="text-sm text-emerald-400">Selected ✓</span>':a.status==="rejected"?'<span class="text-xs text-zinc-500">Not selected</span>':`<div class="flex gap-2"><a href="creator.html?id=${a.creatorId}" class="btn btn-ghost btn-sm">View</a><button class="btn btn-primary btn-sm" onclick="Dash.selectCreator('${a.id}')">Select</button></div>`}</div>${a.message?`<p class="text-sm text-zinc-400 mt-2">${esc(a.message)}</p>`:""}`,"mb-2");}).join("") : empty("No applications yet.");
+      }
+
+      // Deliverables
+      if(c.selectedCreatorId){
+        html+=`<h3 class="font-semibold mb-2 mt-5">Deliverables</h3>`;
+        if(isCreator){
+          html+=card(`<form id="delForm" class="grid gap-3"><input class="field" name="title" placeholder="Video title (e.g. Hook A — Unboxing)" required><textarea class="field" name="note" rows="2" placeholder="Notes / link to your uploaded file"></textarea><p class="text-xs text-zinc-500">Video file uploads activate once media storage is connected. Paste a link for now.</p><button class="btn btn-primary btn-sm justify-self-start">Submit for review</button></form>`,"mb-3");
+        }
+        html+= dels.length? dels.map(d=>card(`<div class="flex items-center justify-between gap-3"><div><p class="font-semibold text-sm">${esc(d.title)}</p>${d.note?`<p class="text-sm text-zinc-400 mt-1">${esc(d.note)}</p>`:""}${d.revisionNote?`<p class="text-sm text-rose-400 mt-1">Revision: ${esc(d.revisionNote)}</p>`:""}</div>${badge(d.status==="submitted"?"Submitted":d.status==="revision"?"Revision Requested":"Approved")}</div>${isBrand&&d.status!=="approved"?`<div class="flex gap-2 mt-3"><button class="btn btn-ghost btn-sm" onclick="Dash.requestRevision('${d.id}')">Request revision</button><button class="btn btn-primary btn-sm" onclick="Dash.approveDeliverable('${d.id}','${id}')">Approve</button></div>`:""}`,"mb-2")).join("") : `<p class="text-sm text-zinc-500 mb-3">No deliverables yet.</p>`;
+
+        if(isBrand&&c.status==="Approved"){
+          html+=card(`<div class="flex items-center justify-between gap-3 flex-wrap"><div><p class="font-semibold text-sm">Finish & record payment</p><p class="text-xs text-zinc-500">Marks the campaign complete and logs a payout record for the creator.</p></div><div class="flex gap-2"><input id="payAmt" class="field !w-28" type="number" placeholder="Amount"><button class="btn btn-gold btn-sm" onclick="Dash.complete('${id}')">Complete</button></div></div>`,"mt-3");
+        }
+
+        // Messages
+        html+=`<h3 class="font-semibold mb-2 mt-5">Messages</h3>`;
+        const msgs=Store.messagesFor(id);
+        html+=`<div class="card p-4"><div class="grid gap-2 max-h-72 overflow-auto mb-3">${msgs.length?msgs.map(m=>{const mine=m.fromId===U.id;return `<div class="max-w-[80%] ${mine?'ml-auto':''}"><div class="px-3 py-2 rounded-2xl text-sm ${mine?'text-white':'text-zinc-200'}" style="background:${mine?'var(--grad)':'rgba(255,255,255,.06)'}">${esc(m.text)}</div><p class="text-[11px] text-zinc-600 mt-0.5 ${mine?'text-right':''}">${new Date(m.at).toLocaleTimeString()}</p></div>`;}).join(""):'<p class="text-sm text-zinc-500 text-center py-4">No messages yet. Say hello 👋</p>'}</div>
+          <form id="msgForm" class="flex gap-2"><input class="field flex-1" name="text" placeholder="Type a message…" required autocomplete="off"><button class="btn btn-primary btn-sm">Send</button></form></div>`;
+      }
+      return html;
+    }
+
+    // ================= Dash controller =================
+    const Dash={
+      render(){
+        U=Store.currentUser();
+        if(!U){gate();return;}
+        role=U.role;
+        const menu=MENUS[role]||MENUS.customer;
+        if(!tab||!menu.some(m=>m[0]===tab)) tab=menu[0][0];
+        // head
+        $("#dashHead").innerHTML=`<div class="flex items-center gap-4"><span class="w-14 h-14 rounded-2xl grid place-items-center font-bold text-white text-xl" style="background:var(--grad)">${(U.name||U.email||"?")[0].toUpperCase()}</span><div><p class="text-sm text-zinc-500">${({brand:"Brand dashboard",creator:"Creator dashboard",customer:"Your account",admin:"Admin"})[role]}</p><h1 class="font-display font-bold text-2xl sm:text-3xl">${esc(U.name||U.email)}</h1></div></div>`;
+        // subnav + panel
+        $("#dashRoot").innerHTML=`<aside class="card p-3 lg:sticky lg:top-24"><nav id="subnav" class="grid gap-1"></nav></aside><div id="panel" class="min-h-[320px]"></div>`;
+        $("#subnav").innerHTML=menu.map(([k,l,ic])=>`<button class="text-left px-3 py-2 rounded-xl text-sm ${k===tab?'text-white bg-white/5':'text-zinc-400'} hover:text-white transition" data-tab="${k}"><span class="mr-2">${ic}</span>${l}</button>`).join("");
+        $("#subnav").querySelectorAll("[data-tab]").forEach(b=>b.addEventListener("click",()=>{ if(b.dataset.tab==="admin"){location.href="admin.html";return;} tab=b.dataset.tab; view=null; location.hash=tab; Dash.render(); }));
+        // panel content
+        if(view&&view.campaign){ $("#panel").innerHTML=campaignDetail(view.campaign); wireCampaignForms(view.campaign); }
+        else { const fn=(VIEWS[role]&&VIEWS[role][tab]); $("#panel").innerHTML= fn?fn():empty("Coming soon."); }
+        wireSaveForms();
+        if(window.updateNotifBadge)updateNotifBadge();
+      },
+      go(t){tab=t;view=null;location.hash=t;Dash.render();},
+      openCampaign(id){view={campaign:id};Dash.render();window.scrollTo({top:0,behavior:'smooth'});},
+      closeCampaign(){view=null;Dash.render();},
+      newCampaign(){
+        const slot=$("#newCampaignSlot"); if(!slot){Dash.go('campaigns');setTimeout(Dash.newCampaign,50);return;}
+        slot.innerHTML=card(`<h3 class="font-semibold mb-3">New campaign brief</h3><form id="campForm" class="grid sm:grid-cols-2 gap-3">
+          <div class="sm:col-span-2"><label class="label">Campaign title</label><input class="field" name="title" required placeholder="e.g. Summer Serum Launch"></div>
+          <div><label class="label">Product</label><input class="field" name="product" placeholder="Product name"></div>
+          <div><label class="label">Objective</label><input class="field" name="objective" placeholder="Awareness, conversions…"></div>
+          <div><label class="label">Number of videos</label><select class="field" name="numVideos"><option>1</option><option>3</option><option>5</option><option>10</option></select></div>
+          <div><label class="label">Budget</label><input class="field" name="budget" placeholder="e.g. $400"></div>
+          <div><label class="label">Deadline</label><input class="field" type="date" name="deadline"></div>
+          <div class="sm:col-span-2"><label class="label">Brief / product info</label><textarea class="field" name="brief" rows="3" placeholder="What should creators know? Key features, tone, do's & don'ts."></textarea></div>
+          <div class="sm:col-span-2 flex gap-2"><button class="btn btn-primary" name="act" value="Open">Publish campaign</button><button class="btn btn-ghost" name="act" value="Draft">Save as draft</button></div>
+        </form>`,"mb-4");
+        const f=$("#campForm");
+        f.addEventListener("submit",(e)=>{e.preventDefault();const fd=Object.fromEntries(new FormData(f));const act=e.submitter&&e.submitter.value||"Open";
+          const c=Store.createCampaign({title:fd.title,product:fd.product,objective:fd.objective,numVideos:Number(fd.numVideos),budget:fd.budget,deadline:fd.deadline,brief:fd.brief,status:act});
+          toast(act==="Open"?"Campaign published — creators can now apply":"Draft saved"); Store.emitEmail("New campaign",null,"Your campaign is live"); Dash.render();});
+      },
+      publish(id){Store.publishCampaign(id);toast("Campaign is now open to creators");Dash.render();},
+      apply(id){ const msg=prompt("Add a short note to the brand (optional):")||""; try{Store.apply(id,msg);toast("Application sent!");Dash.render();}catch(e){toast(e.message);} },
+      selectCreator(appId){Store.approveApplication(appId);toast("Creator selected & notified");Dash.render();},
+      requestRevision(dId){const note=prompt("What should be revised?")||"";Store.requestRevision(dId,note);toast("Revision requested");Dash.render();},
+      approveDeliverable(dId){Store.approveDeliverable(dId);toast("Video approved");Dash.render();},
+      complete(id){const amt=($("#payAmt")||{}).value||0;Store.completeCampaign(id,amt);toast("Campaign completed & payment recorded");Dash.render();},
+      addPortfolio(){const title=prompt("Item title (e.g. 'Beauty unboxing'):");if(!title)return;const emojis=["🎬","✨","🎧","🥤","👜","💪","🍫","📽️"];const grads=[["#7c3aed","#ec4899"],["#22d3ee","#3b82f6"],["#f59e0b","#ef4444"],["#34d399","#10b981"]];const p=U.portfolio||[];p.push({title,emoji:emojis[p.length%emojis.length],grad:grads[p.length%grads.length]});Store.updateProfile({portfolio:p});U=Store.currentUser();Dash.render();},
+      delPortfolio(i){const p=(U.portfolio||[]).slice();p.splice(i,1);Store.updateProfile({portfolio:p});U=Store.currentUser();Dash.render();},
+      saveRates(){const rateFrom=Number($("#rateFrom").value)||null;const categories=$("#catInput").value.split(",").map(s=>s.trim()).filter(Boolean);Store.updateProfile({rateFrom,categories});U=Store.currentUser();toast("Saved");Dash.render();},
+      deleteAccount(){if(confirm("Delete your account? This removes your local profile data.")){Store.deleteUser(U.id);Store.logout();location.href="index.html";}},
+    };
+    window.Dash=Dash;
+
+    function wireSaveForms(){
+      $("#panel").querySelectorAll("form[data-save]").forEach(f=>{
+        f.addEventListener("submit",(e)=>{e.preventDefault();const fd=Object.fromEntries(new FormData(f));
+          ["languages","niches","styles"].forEach(k=>{if(fd[k]!==undefined)fd[k]=fd[k].split(",").map(s=>s.trim()).filter(Boolean);});
+          if(fd.rateFrom!==undefined)fd.rateFrom=Number(fd.rateFrom)||null;
+          Store.updateProfile(fd);U=Store.currentUser();toast("Saved");Dash.render();});
+      });
+    }
+    function wireCampaignForms(id){
+      const df=$("#delForm"); if(df)df.addEventListener("submit",(e)=>{e.preventDefault();const fd=Object.fromEntries(new FormData(df));Store.submitDeliverable(id,{title:fd.title,note:fd.note});toast("Submitted for review");Dash.render();});
+      const mf=$("#msgForm"); if(mf)mf.addEventListener("submit",(e)=>{e.preventDefault();const text=new FormData(mf).get("text");const c=Store.campaign(id);const other=U.role==="brand"?c.selectedCreatorId:c.brandId;if(other){Store.sendMessage(id,other,text);Dash.render();}});
+    }
+
+    // boot (wait for components/Store)
+    function boot(){ if(!window.Store){setTimeout(boot,30);return;} const h=(location.hash||"").replace("#","");const u=Store.currentUser();if(u){const menu=MENUS[u.role]||MENUS.customer;if(h&&menu.some(m=>m[0]===h))tab=h;} Dash.render(); document.addEventListener("exc:notify",()=>{ if(Store.currentUser())Dash.render(); }); }
+    document.addEventListener("DOMContentLoaded",boot);
   })();
   </script>
 </body>

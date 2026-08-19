@@ -174,16 +174,23 @@ function renderPortfolioFilters() {
 }
 
 /* =====================  SHOP  ===================== */
+function reviewLabel(id) {
+  if (!window.Store || !Store.reviewsFor) return "No reviews yet";
+  const rv = Store.reviewsFor(id);
+  if (!rv.length) return "No reviews yet";
+  const avg = (rv.reduce((s, r) => s + r.rating, 0) / rv.length).toFixed(1);
+  return `★ ${avg} · ${rv.length} review${rv.length === 1 ? "" : "s"}`;
+}
 function productCard(p, i) {
   const badge = p.viral ? `<span class="absolute top-3 left-3 pill !text-white !border-white/30 !bg-black/30">🔥 Viral</span>` : "";
   const wished = Wish.has(p.id);
   return `<div class="reveal ${'d' + ((i % 4) + 1)} card overflow-hidden group">
-    ${thumb(p.emoji, p.grad, "1/1", badge)}
+    <a href="product.html?id=${p.id}" class="block">${thumb(p.emoji, p.grad, "1/1", badge)}</a>
     <button class="wish-btn absolute top-3 right-3 w-9 h-9 rounded-full glass grid place-items-center ${wished ? "text-pink-400" : "text-white"}" data-wish="${p.id}" aria-label="Wishlist">${wished ? "♥" : "♡"}</button>
     <div class="p-4">
       <p class="text-xs text-zinc-500">${p.category}</p>
-      <p class="font-semibold truncate">${p.title}</p>
-      <p class="text-xs text-zinc-500 mt-1">No reviews yet</p>
+      <a href="product.html?id=${p.id}" class="font-semibold truncate block hover:text-white">${p.title}</a>
+      <p class="text-xs text-zinc-500 mt-1">${reviewLabel(p.id)}</p>
       <div class="flex items-center justify-between mt-3">
         <span class="font-display font-bold text-lg">${money(p.price)}</span>
         <button class="btn btn-primary btn-sm" onclick="Cart.add('${p.id}')">Add</button>
@@ -267,7 +274,9 @@ const Checkout = {
   buyNow(id) { Cart.add(id); Checkout.open(); },
   complete(info) {
     const order = { id: "EXC-" + Date.now().toString().slice(-6), items: Cart.get(), total: Cart.total(), info, at: new Date().toISOString() };
-    const orders = JSON.parse(localStorage.getItem("exc_orders") || "[]"); orders.push(order); localStorage.setItem("exc_orders", JSON.stringify(orders));
+    // Persist via the platform Store (ties order to the signed-in user + records payment/notifications)
+    if (window.Store && Store.createOrder) { try { Store.createOrder(order); } catch (e) { const o = JSON.parse(localStorage.getItem("exc_orders") || "[]"); o.push(order); localStorage.setItem("exc_orders", JSON.stringify(o)); } }
+    else { const o = JSON.parse(localStorage.getItem("exc_orders") || "[]"); o.push(order); localStorage.setItem("exc_orders", JSON.stringify(o)); }
     Cart.save([]);
     $("#coBody").innerHTML = `<div class="text-center py-4">
       <div class="text-5xl mb-3">✅</div>

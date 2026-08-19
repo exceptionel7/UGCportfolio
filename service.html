@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>UGC Service | Exceptionel</title>
+  <meta name="description" content="Detailed UGC service — explanation, examples, benefits, pricing, deliverables, turnaround and FAQ. Start your UGC campaign with Exceptionel." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><text y='20' font-size='20'>✦</text></svg>" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{fontFamily:{display:['Space Grotesk','sans-serif'],sans:['Inter','sans-serif']}}}}</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/theme.css" />
+</head>
+<body class="bg-aura font-sans">
+  <div id="site-header"></div>
+  <main class="relative z-10">
+    <div id="svc"></div>
+  </main>
+  <div id="site-footer"></div>
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/store.js"></script>
+  <script src="assets/js/components.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+  (function(){
+    const $=s=>document.querySelector(s);const esc=s=>(s||"").replace(/</g,"&lt;");
+    const slug=new URLSearchParams(location.search).get("slug");
+    const D=window.EXC_DATA;
+    const s=(D.services||[]).find(x=>x.slug===slug)||(D.services||[])[0];
+    if(!s){$("#svc").innerHTML='<section class="section"><div class="container-x">Service not found. <a href="ugc-services.html" class="text-gradient">See all services →</a></div></section>';}
+    else{
+      document.title=`${s.title} | Exceptionel UGC`;
+      const d=s.detail||{};
+      const examples=[["#7c3aed","#ec4899","🎬"],["#22d3ee","#3b82f6","✨"],["#f59e0b","#ef4444","🔥"]];
+      $("#svc").innerHTML=`
+      <section class="section !pb-8"><div class="container-x max-w-4xl">
+        <a href="ugc-services.html" class="text-sm text-zinc-400 hover:text-white">← All UGC services</a>
+        <div class="text-5xl mt-5">${s.icon}</div>
+        <h1 class="font-display font-bold text-balance leading-[1.05] mt-3" style="font-size:clamp(2rem,5vw,3.4rem)">${esc(s.title)}</h1>
+        <p class="text-lg text-zinc-400 mt-4">${esc(d.long||s.desc)}</p>
+        <div class="flex flex-wrap gap-3 mt-6">
+          <a href="contact.html#brands" class="btn btn-primary">Start My UGC Campaign</a>
+          <a href="ugc-services.html#pricing" class="btn btn-ghost">See full pricing</a>
+        </div>
+      </div></section>
+
+      <section class="section !pt-0"><div class="container-x max-w-4xl">
+        <h2 class="font-display font-bold text-xl mb-4">Example videos</h2>
+        <div class="grid grid-cols-3 gap-4">${examples.map(e=>`<div class="card card-glow overflow-hidden cursor-pointer group" onclick='VideoViewer.open(${JSON.stringify({product:s.title,type:"Example",grad:[e[0],e[1]],emoji:e[2],videoUrl:null}).replace(/'/g,"&#39;")})'><div class="vframe" style="background:linear-gradient(160deg,${e[0]},${e[1]})"><div class="absolute inset-0 grid place-items-center text-4xl sm:text-5xl">${e[2]}</div><div class="play"><div class="w-10 h-10 rounded-full glass grid place-items-center text-white group-hover:scale-110 transition">▶</div></div></div></div>`).join("")}</div>
+        <p class="text-xs text-zinc-500 mt-3">Example slots — real work from this service type plays here as it's added to the portfolio.</p>
+      </div></section>
+
+      <section class="section !pt-0"><div class="container-x max-w-4xl grid md:grid-cols-2 gap-4">
+        <div class="card p-6"><h3 class="font-semibold text-lg mb-3">Benefits</h3><ul class="space-y-2 text-sm text-zinc-300">${(d.benefits||[]).map(b=>`<li class="flex gap-2"><span class="text-fuchsia-400">✓</span>${esc(b)}</li>`).join("")}</ul></div>
+        <div class="card p-6"><h3 class="font-semibold text-lg mb-3">What you get</h3><ul class="space-y-2 text-sm text-zinc-300">${(d.deliverables||[]).map(b=>`<li class="flex gap-2"><span class="text-fuchsia-400">›</span>${esc(b)}</li>`).join("")}</ul></div>
+        <div class="card p-6"><h3 class="font-semibold text-lg mb-1">Pricing</h3><p class="text-sm text-zinc-400 mb-2">Starting at</p><div class="font-display font-bold text-4xl">$${d.priceFrom||100}</div><p class="text-xs text-zinc-500 mt-2">Final pricing depends on complexity, usage rights, revisions and exclusivity.</p></div>
+        <div class="card p-6"><h3 class="font-semibold text-lg mb-1">Turnaround</h3><div class="font-display font-bold text-2xl">${esc(d.turnaround||"3–5 business days")}</div><p class="text-xs text-zinc-500 mt-2">Priority turnaround available on monthly plans.</p></div>
+      </div></section>
+
+      <section class="section !pt-0"><div class="container-x max-w-3xl">
+        <h2 class="font-display font-bold text-2xl mb-5">FAQ</h2>
+        <div class="grid gap-3">${(d.faq||[]).map(f=>`<div class="card p-5"><p class="font-semibold">${esc(f[0])}</p><p class="text-sm text-zinc-400 mt-2">${esc(f[1])}</p></div>`).join("")}</div>
+      </div></section>
+
+      <section class="section !pt-0"><div class="container-x max-w-4xl">
+        <div class="rounded-[32px] p-10 sm:p-14 text-center" style="background:var(--grad)">
+          <h2 class="font-display font-bold text-white" style="font-size:clamp(1.6rem,4vw,2.6rem)">Ready for ${esc(s.title.toLowerCase())}?</h2>
+          <a href="contact.html#brands" class="btn bg-white text-[#1a1206] mt-6">Start My UGC Campaign</a>
+        </div>
+      </div></section>`;
+      if(window.wireReveal2)wireReveal2();
+    }
+  })();
+  </script>
+</body>
+</html>

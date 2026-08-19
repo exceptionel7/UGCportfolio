@@ -179,6 +179,7 @@
   <div id="site-footer"></div>
 
   <script src="assets/js/data.js"></script>
+  <script src="assets/js/store.js"></script>
   <script src="assets/js/components.js"></script>
   <script src="assets/js/app.js"></script>
   <script>
@@ -200,11 +201,12 @@
 
       // Services (first 8)
       document.getElementById("servicesGrid").innerHTML = (D.services||[]).map((s,i)=>`
-        <div class="reveal d${(i%4)+1} card p-6">
+        <a href="service.html?slug=${s.slug}" class="reveal d${(i%4)+1} card p-6 block group">
           <div class="text-3xl mb-3">${s.icon}</div>
-          <h3 class="font-semibold text-lg">${s.title}</h3>
+          <h3 class="font-semibold text-lg group-hover:text-white">${s.title}</h3>
           <p class="text-sm text-zinc-400 mt-2">${s.desc}</p>
-        </div>`).join("");
+          <span class="text-sm text-gradient font-semibold mt-3 inline-block">Learn more →</span>
+        </a>`).join("");
 
       // Steps
       document.getElementById("stepsGrid").innerHTML = (D.brandSteps||[]).map((s,i)=>`

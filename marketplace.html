@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Creator Marketplace — Hire UGC Creators | Exceptionel</title>
+  <meta name="description" content="Discover and hire UGC creators. Filter by category, location, language, price and content style, then invite them to your campaign." />
+  <meta property="og:title" content="Creator Marketplace | Exceptionel" />
+  <link rel="canonical" href="https://exceptionelstudio.vercel.app/marketplace.html" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><text y='20' font-size='20'>✦</text></svg>" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{fontFamily:{display:['Space Grotesk','sans-serif'],sans:['Inter','sans-serif']}}}}</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/theme.css" />
+</head>
+<body class="bg-aura font-sans">
+  <div id="site-header"></div>
+  <main class="relative z-10">
+    <section class="section !pb-6">
+      <div class="container-x">
+        <span class="pill reveal mb-5">Creator Marketplace</span>
+        <h1 class="reveal d1 font-display font-bold text-balance leading-[1.05]" style="font-size:clamp(2rem,5vw,3.4rem)">Discover creators. <span class="text-gradient">Launch campaigns.</span></h1>
+        <p class="reveal d2 text-zinc-400 mt-4 max-w-2xl">Browse UGC creators, view their portfolios and invite them to your campaign. New creators appear here as they join Exceptionel.</p>
+      </div>
+    </section>
+
+    <section class="section !pt-2">
+      <div class="container-x grid lg:grid-cols-[260px_1fr] gap-8 items-start">
+        <aside class="card p-5 lg:sticky lg:top-24">
+          <label class="label">Search</label>
+          <input id="mSearch" class="field mb-4" placeholder="Name or niche…">
+          <label class="label">Category</label>
+          <select id="fCategory" class="field mb-4"></select>
+          <label class="label">Location</label>
+          <select id="fLocation" class="field mb-4"></select>
+          <label class="label">Language</label>
+          <select id="fLanguage" class="field mb-4"></select>
+          <label class="label">Content style</label>
+          <select id="fStyle" class="field mb-4"></select>
+          <label class="label">Max starting rate: <span id="priceLbl">Any</span></label>
+          <input id="fPrice" type="range" min="0" max="1000" value="1000" step="25" class="w-full accent-fuchsia-500 mb-4">
+          <label class="flex items-center gap-2 text-sm text-zinc-300"><input id="fPortfolio" type="checkbox" class="accent-fuchsia-500"> Has portfolio</label>
+          <button id="clearF" class="btn btn-ghost btn-sm w-full mt-4">Clear filters</button>
+        </aside>
+        <div>
+          <div id="mCount" class="text-sm text-zinc-500 mb-4"></div>
+          <div id="mGrid" class="grid sm:grid-cols-2 xl:grid-cols-3 gap-4"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container-x">
+        <div class="rounded-[32px] p-10 sm:p-14 text-center" style="background:var(--grad)">
+          <h2 class="font-display font-bold text-white" style="font-size:clamp(1.6rem,3.5vw,2.6rem)">Are you a creator?</h2>
+          <p class="text-white/85 mt-3">Build a profile and get discovered by brands.</p>
+          <button class="btn bg-white text-[#1a1206] mt-6" onclick="Auth.open('signup',{role:'creator'})">Become a Creator</button>
+        </div>
+      </div>
+    </section>
+  </main>
+  <div id="site-footer"></div>
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/store.js"></script>
+  <script src="assets/js/components.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+  (function(){
+    const $=s=>document.querySelector(s);const esc=s=>(s||"").replace(/</g,"&lt;");
+    const money=n=>"$"+Number(n||0).toLocaleString();
+    let f={q:"",category:"All",location:"All",language:"All",style:"All",price:1000,portfolio:false};
+
+    function uniq(arr){return [...new Set(arr.filter(Boolean))].sort();}
+    function fillSelect(el,vals){el.innerHTML=`<option>All</option>`+vals.map(v=>`<option>${esc(v)}</option>`).join("");}
+
+    function invite(creatorId){
+      const u=Store.currentUser();
+      if(!u){Auth.open('signup',{role:'brand'});return;}
+      if(u.role!=="brand"){toast("Sign in as a brand to invite creators");return;}
+      const cs=Store.brandCampaigns(u.id);
+      if(!cs.length){ if(confirm("You have no campaigns yet. Create one now?")) location.href="account.html#campaigns"; return; }
+      // notify creator to check the most recent open campaign
+      const open=cs.filter(c=>["Open","Applications","Draft"].includes(c.status));
+      const c=open[open.length-1]||cs[cs.length-1];
+      Store.notify(creatorId,"invite",`You've been invited to apply to "${c.title}" by ${u.name||"a brand"}.`);
+      Store.emitEmail("Campaign invite",null,"You've been invited to a campaign");
+      toast("Invitation sent to creator");
+    }
+    window.__invite=invite;
+
+    function creatorCard(c){
+      const av=(c.name||"?")[0].toUpperCase();
+      const nVids=(c.portfolio||[]).length;
+      const preview=(c.portfolio||[]).slice(0,3);
+      return `<div class="card p-5">
+        <div class="flex items-center gap-3">
+          <span class="w-12 h-12 rounded-full grid place-items-center font-bold text-white text-lg" style="background:var(--grad)">${av}</span>
+          <div class="min-w-0"><p class="font-semibold truncate">${esc(c.name||"Creator")}</p><p class="text-xs text-zinc-500 truncate">${esc(c.location||"Location not set")}</p></div>
+        </div>
+        <p class="text-sm text-zinc-400 mt-3 line-clamp-2">${esc(c.bio||"No bio yet.")}</p>
+        <div class="flex flex-wrap gap-1.5 mt-3">${(c.niches||[]).slice(0,3).map(n=>`<span class="pill text-[11px]">${esc(n)}</span>`).join("")||'<span class="text-xs text-zinc-600">No niches yet</span>'}</div>
+        <div class="grid grid-cols-3 gap-2 mt-4 text-center">
+          <div><p class="font-display font-bold">${nVids}</p><p class="text-[11px] text-zinc-500">Portfolio</p></div>
+          <div><p class="font-display font-bold">${c.rateFrom?money(c.rateFrom):"—"}</p><p class="text-[11px] text-zinc-500">From</p></div>
+          <div><p class="font-display font-bold">${(c.languages||[]).length||"—"}</p><p class="text-[11px] text-zinc-500">Languages</p></div>
+        </div>
+        ${preview.length?`<div class="grid grid-cols-3 gap-1.5 mt-4">${preview.map(p=>`<div class="rounded-lg" style="aspect-ratio:9/16;background:linear-gradient(160deg,${p.grad?p.grad[0]:'#7c3aed'},${p.grad?p.grad[1]:'#ec4899'})"><div class="w-full h-full grid place-items-center text-xl">${p.emoji||"🎬"}</div></div>`).join("")}</div>`:""}
+        <div class="flex gap-2 mt-4">
+          <a href="creator.html?id=${c.id}" class="btn btn-ghost btn-sm flex-1">View Creator</a>
+          <button class="btn btn-primary btn-sm flex-1" onclick="__invite('${c.id}')">Invite to Campaign</button>
+        </div>
+      </div>`;
+    }
+
+    function render(){
+      const all=Store.creators();
+      let list=all.filter(c=>
+        (f.category==="All"||(c.niches||[]).concat(c.categories||[]).includes(f.category))&&
+        (f.location==="All"||c.location===f.location)&&
+        (f.language==="All"||(c.languages||[]).includes(f.language))&&
+        (f.style==="All"||(c.styles||[]).includes(f.style))&&
+        (!f.portfolio||(c.portfolio||[]).length>0)&&
+        (!c.rateFrom||c.rateFrom<=f.price)&&
+        (!f.q||(c.name||"").toLowerCase().includes(f.q)||(c.niches||[]).join(" ").toLowerCase().includes(f.q))
+      );
+      $("#mCount").textContent=`${list.length} creator${list.length===1?"":"s"}`;
+      $("#mGrid").innerHTML=list.length?list.map(creatorCard).join(""):`<div class="card p-10 text-center text-zinc-400 sm:col-span-2 xl:col-span-3">No creators match yet. As creators join Exceptionel and build profiles, they'll show up here.<div class="mt-4"><button class="btn btn-primary" onclick="Auth.open('signup',{role:'creator'})">Be the first creator</button></div></div>`;
+    }
+
+    function boot(){
+      if(!window.Store){setTimeout(boot,30);return;}
+      const cr=Store.creators();
+      fillSelect($("#fCategory"),uniq(cr.flatMap(c=>(c.niches||[]).concat(c.categories||[]))));
+      fillSelect($("#fLocation"),uniq(cr.map(c=>c.location)));
+      fillSelect($("#fLanguage"),uniq(cr.flatMap(c=>c.languages||[])));
+      fillSelect($("#fStyle"),uniq(cr.flatMap(c=>c.styles||[])));
+      $("#mSearch").addEventListener("input",e=>{f.q=e.target.value.toLowerCase();render();});
+      $("#fCategory").addEventListener("change",e=>{f.category=e.target.value;render();});
+      $("#fLocation").addEventListener("change",e=>{f.location=e.target.value;render();});
+      $("#fLanguage").addEventListener("change",e=>{f.language=e.target.value;render();});
+      $("#fStyle").addEventListener("change",e=>{f.style=e.target.value;render();});
+      $("#fPrice").addEventListener("input",e=>{f.price=Number(e.target.value);$("#priceLbl").textContent=f.price>=1000?"Any":money(f.price);render();});
+      $("#fPortfolio").addEventListener("change",e=>{f.portfolio=e.target.checked;render();});
+      $("#clearF").addEventListener("click",()=>{f={q:"",category:"All",location:"All",language:"All",style:"All",price:1000,portfolio:false};$("#mSearch").value="";$("#fCategory").value="All";$("#fLocation").value="All";$("#fLanguage").value="All";$("#fStyle").value="All";$("#fPrice").value=1000;$("#priceLbl").textContent="Any";$("#fPortfolio").checked=false;render();});
+      render();
+    }
+    document.addEventListener("DOMContentLoaded",boot);
+  })();
+  </script>
+</body>
+</html>

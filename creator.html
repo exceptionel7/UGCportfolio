@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Creator Profile | Exceptionel</title>
+  <meta name="description" content="View an Exceptionel UGC creator's profile, portfolio, niches, languages and rates — and invite them to your campaign." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><text y='20' font-size='20'>✦</text></svg>" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{fontFamily:{display:['Space Grotesk','sans-serif'],sans:['Inter','sans-serif']}}}}</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/theme.css" />
+</head>
+<body class="bg-aura font-sans">
+  <div id="site-header"></div>
+  <main class="relative z-10">
+    <section class="section"><div class="container-x max-w-4xl">
+      <a href="marketplace.html" class="text-sm text-zinc-400 hover:text-white">← Back to marketplace</a>
+      <div id="profile" class="mt-6"></div>
+    </div></section>
+  </main>
+  <div id="site-footer"></div>
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/store.js"></script>
+  <script src="assets/js/components.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+  (function(){
+    const $=s=>document.querySelector(s);const esc=s=>(s||"").replace(/</g,"&lt;");
+    const money=n=>"$"+Number(n||0).toLocaleString();
+    const id=new URLSearchParams(location.search).get("id");
+
+    function invite(creatorId){
+      const u=Store.currentUser();
+      if(!u){Auth.open('signup',{role:'brand'});return;}
+      if(u.role!=="brand"){toast("Sign in as a brand to invite creators");return;}
+      const cs=Store.brandCampaigns(u.id);
+      if(!cs.length){ if(confirm("You have no campaigns yet. Create one now?")) location.href="account.html#campaigns"; return; }
+      const c=cs[cs.length-1];
+      Store.notify(creatorId,"invite",`You've been invited to apply to "${c.title}" by ${u.name||"a brand"}.`);
+      Store.emitEmail("Campaign invite",null,"You've been invited to a campaign");
+      toast("Invitation sent");
+    }
+    window.__invite=invite;
+
+    function boot(){
+      if(!window.Store){setTimeout(boot,30);return;}
+      const c=id?Store.getUser(id):null;
+      if(!c||c.role!=="creator"){$("#profile").innerHTML=`<div class="card p-10 text-center text-zinc-400">Creator not found. <a href="marketplace.html" class="text-gradient">Browse the marketplace →</a></div>`;return;}
+      const av=(c.name||"?")[0].toUpperCase();
+      const port=c.portfolio||[];
+      document.title=`${c.name||"Creator"} | Exceptionel`;
+      $("#profile").innerHTML=`
+        <div class="card p-6 sm:p-8">
+          <div class="flex flex-col sm:flex-row sm:items-center gap-5">
+            <span class="w-20 h-20 rounded-2xl grid place-items-center font-bold text-white text-3xl shrink-0" style="background:var(--grad)">${av}</span>
+            <div class="flex-1">
+              <h1 class="font-display font-bold text-3xl">${esc(c.name||"Creator")}</h1>
+              <p class="text-zinc-400">${esc(c.location||"Location not set")}${c.rateFrom?` · from ${money(c.rateFrom)}`:""}</p>
+              <div class="flex flex-wrap gap-1.5 mt-3">${(c.niches||[]).map(n=>`<span class="pill text-[11px]">${esc(n)}</span>`).join("")}</div>
+            </div>
+            <button class="btn btn-primary" onclick="__invite('${c.id}')">Invite to Campaign</button>
+          </div>
+          ${c.bio?`<p class="text-zinc-300 mt-6">${esc(c.bio)}</p>`:""}
+          <div class="grid sm:grid-cols-3 gap-4 mt-6">
+            <div class="glass rounded-xl p-4"><p class="text-xs text-zinc-500 uppercase tracking-wider mb-1">Languages</p><p class="text-sm">${esc((c.languages||[]).join(", ")||"—")}</p></div>
+            <div class="glass rounded-xl p-4"><p class="text-xs text-zinc-500 uppercase tracking-wider mb-1">Content categories</p><p class="text-sm">${esc((c.categories||[]).join(", ")||"—")}</p></div>
+            <div class="glass rounded-xl p-4"><p class="text-xs text-zinc-500 uppercase tracking-wider mb-1">Content style</p><p class="text-sm">${esc((c.styles||[]).join(", ")||"—")}</p></div>
+          </div>
+          ${c.socials?`<p class="text-sm text-zinc-400 mt-4">Socials: ${esc(c.socials)}</p>`:""}
+        </div>
+        <h2 class="font-display font-bold text-2xl mt-8 mb-4">Portfolio</h2>
+        ${port.length?`<div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">${port.map(p=>`<div class="card card-glow overflow-hidden cursor-pointer group" onclick='VideoViewer.open(${JSON.stringify({product:c.name,type:p.title||"UGC",grad:p.grad||["#7c3aed","#ec4899"],emoji:p.emoji||"🎬",videoUrl:p.url||null}).replace(/'/g,"&#39;")})'>
+            <div class="vframe" style="background:linear-gradient(160deg,${p.grad?p.grad[0]:'#7c3aed'},${p.grad?p.grad[1]:'#ec4899'})"><div class="absolute inset-0 grid place-items-center text-5xl">${p.emoji||"🎬"}</div><div class="play"><div class="w-11 h-11 rounded-full glass grid place-items-center text-white group-hover:scale-110 transition">▶</div></div></div>
+            <div class="p-3"><p class="text-sm truncate">${esc(p.title||"Clip")}</p></div></div>`).join("")}</div>`:`<div class="card p-8 text-center text-zinc-400">This creator hasn't uploaded portfolio items yet.</div>`}
+        <div class="rounded-[28px] p-8 sm:p-12 text-center mt-10" style="background:var(--grad)">
+          <h2 class="font-display font-bold text-white text-2xl">Want to work with ${esc((c.name||"this creator").split(" ")[0])}?</h2>
+          <button class="btn bg-white text-[#1a1206] mt-5" onclick="__invite('${c.id}')">Invite to Campaign</button>
+        </div>`;
+    }
+    document.addEventListener("DOMContentLoaded",boot);
+  })();
+  </script>
+</body>
+</html>

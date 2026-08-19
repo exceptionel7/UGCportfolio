@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Product | Exceptionel Shop</title>
+  <meta name="description" content="Product details, images, video, features and reviews. Add to cart or buy now with secure checkout at Exceptionel." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><text y='20' font-size='20'>✦</text></svg>" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{fontFamily:{display:['Space Grotesk','sans-serif'],sans:['Inter','sans-serif']}}}}</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/theme.css" />
+</head>
+<body class="bg-aura font-sans">
+  <div id="site-header"></div>
+  <main class="relative z-10">
+    <div id="prod"></div>
+  </main>
+  <div id="site-footer"></div>
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/store.js"></script>
+  <script src="assets/js/components.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+  (function(){
+    const $=s=>document.querySelector(s);const esc=s=>(s||"").replace(/</g,"&lt;");
+    const money=n=>n===0?"Free":"$"+Number(n).toLocaleString();
+    const id=new URLSearchParams(location.search).get("id");
+    const D=window.EXC_DATA;
+    const p=(D.products||[]).find(x=>x.id===id);
+    let qty=1;
+
+    // Generic, clearly-neutral catalog copy by category (placeholder until real copy is entered in admin)
+    const CAT_FEATURES={
+      Kitchen:["Durable, easy-clean materials","Space-saving design","Everyday-use tested"],
+      Home:["Ambient, cozy feel","Simple setup","Energy-conscious"],
+      Fashion:["Premium materials","Everyday versatile","True-to-size fit"],
+      Electronics:["Fast, reliable performance","Long battery life","Compact & portable"],
+      Sports:["Built for daily training","Lightweight & tough","Grip-friendly"],
+      "Toys & Games":["Screen-free fun","Encourages creativity","Age-appropriate"],
+      Beauty:["Gentle, clean formula","Visible everyday results","Cruelty-free"],
+      Gadgets:["Clever, useful design","Plug-and-play","Travel-ready"],
+      Lifestyle:["Feel-good quality","Thoughtful details","Giftable"]
+    };
+
+    function stars(n){return "★★★★★☆☆☆☆☆".slice(5-Math.round(n),10-Math.round(n));}
+    function reviewBlock(){
+      const rv=Store.reviewsFor(id);
+      const u=Store.currentUser();
+      const avg=rv.length?(rv.reduce((s,r)=>s+r.rating,0)/rv.length).toFixed(1):null;
+      return `<h2 class="font-display font-bold text-2xl mb-1">Reviews</h2>
+        <p class="text-sm text-zinc-500 mb-4">${rv.length?`★ ${avg} average · ${rv.length} review${rv.length===1?"":"s"}`:"No reviews yet — be the first."}</p>
+        ${rv.length?`<div class="grid gap-3 mb-6">${rv.slice().reverse().map(r=>`<div class="card p-4"><div class="flex items-center justify-between"><span class="font-semibold text-sm">${esc(r.name)}</span><span class="text-fuchsia-400 text-sm">${stars(r.rating)}</span></div>${r.text?`<p class="text-sm text-zinc-400 mt-2">${esc(r.text)}</p>`:""}<p class="text-[11px] text-zinc-600 mt-1">${new Date(r.at).toLocaleDateString()}</p></div>`).join("")}</div>`:""}
+        ${u?`<form id="revForm" class="card p-5"><h3 class="font-semibold mb-3">Write a review</h3>
+          <label class="label">Rating</label><select class="field mb-3" name="rating"><option value="5">★★★★★ Excellent</option><option value="4">★★★★ Good</option><option value="3">★★★ Okay</option><option value="2">★★ Poor</option><option value="1">★ Bad</option></select>
+          <label class="label">Your review</label><textarea class="field mb-3" name="text" rows="3" placeholder="Share your experience"></textarea>
+          <button class="btn btn-primary btn-sm">Submit review</button></form>`:`<div class="card p-5 text-center text-zinc-400">Only verified accounts can review. <button class="text-gradient font-semibold" onclick="Auth.open('login')">Log in</button> to write one.</div>`}`;
+    }
+
+    function render(){
+      if(!p){$("#prod").innerHTML='<section class="section"><div class="container-x">Product not found. <a href="shop.html" class="text-gradient">Back to shop →</a></div></section>';return;}
+      document.title=`${p.title} | Exceptionel Shop`;
+      const feats=CAT_FEATURES[p.category]||["Quality checked","Fast shipping","30-day returns"];
+      const related=(D.products||[]).filter(x=>x.category===p.category&&x.id!==p.id).slice(0,4);
+      const wished=Wish.has(p.id);
+      $("#prod").innerHTML=`
+      <section class="section !pb-8"><div class="container-x">
+        <a href="shop.html" class="text-sm text-zinc-400 hover:text-white">← Back to shop</a>
+        <div class="grid lg:grid-cols-2 gap-10 mt-5">
+          <div>
+            <div class="rounded-3xl overflow-hidden" style="aspect-ratio:1/1;background:linear-gradient(135deg,${p.grad[0]},${p.grad[1]})"><div class="w-full h-full grid place-items-center text-8xl">${p.emoji}</div></div>
+            <div class="grid grid-cols-4 gap-3 mt-3">
+              <div class="rounded-xl grid place-items-center text-2xl" style="aspect-ratio:1;background:linear-gradient(135deg,${p.grad[0]},${p.grad[1]})">${p.emoji}</div>
+              <button class="rounded-xl grid place-items-center text-white relative overflow-hidden group" style="aspect-ratio:1;background:#14141c" onclick='VideoViewer.open(${JSON.stringify({product:p.title,type:"Product video",grad:p.grad,emoji:p.emoji,videoUrl:null}).replace(/'/g,"&#39;")})'><span class="text-2xl">▶</span><span class="absolute bottom-1 text-[10px] text-zinc-400">Video</span></button>
+              <div class="rounded-xl grid place-items-center text-xl opacity-60" style="aspect-ratio:1;background:linear-gradient(135deg,${p.grad[1]},${p.grad[0]})">${p.emoji}</div>
+              <div class="rounded-xl grid place-items-center text-xl opacity-40" style="aspect-ratio:1;background:linear-gradient(135deg,${p.grad[0]},${p.grad[1]})">${p.emoji}</div>
+            </div>
+          </div>
+          <div>
+            <p class="eyebrow">${esc(p.category)}${p.viral?" · 🔥 Viral":""}</p>
+            <h1 class="font-display font-bold mt-2" style="font-size:clamp(1.8rem,4vw,2.8rem)">${esc(p.title)}</h1>
+            <p class="text-sm text-zinc-500 mt-2" id="revLabel"></p>
+            <div class="font-display font-bold text-3xl mt-4">${money(p.price)}</div>
+            <p class="text-zinc-400 mt-4">A quality ${esc(p.category.toLowerCase())} pick from the Exceptionel shop. Product descriptions are editable from the admin dashboard.</p>
+            <ul class="grid gap-2 mt-5 text-sm text-zinc-300">${feats.map(f=>`<li class="flex gap-2"><span class="text-fuchsia-400">✓</span>${esc(f)}</li>`).join("")}</ul>
+            <div class="flex items-center gap-3 mt-6">
+              <div class="flex items-center gap-2"><button class="w-10 h-10 rounded-xl glass" onclick="__q(-1)">−</button><span id="qty" class="w-8 text-center">1</span><button class="w-10 h-10 rounded-xl glass" onclick="__q(1)">+</button></div>
+              <button class="btn btn-ghost" onclick="Wish.toggle('${p.id}');__wish()"><span id="wishTxt">${wished?"♥ Saved":"♡ Wishlist"}</span></button>
+            </div>
+            <div class="flex flex-col sm:flex-row gap-3 mt-4">
+              <button class="btn btn-ghost flex-1" onclick="__add()">Add to Cart</button>
+              <button class="btn btn-primary flex-1" onclick="__buy()">Buy Now</button>
+            </div>
+            <p class="text-xs text-zinc-500 mt-4">🔒 Secure checkout. Payment gateway (Stripe/PayPal) connects via server-side keys.</p>
+          </div>
+        </div>
+      </div></section>
+
+      <section class="section !pt-0"><div class="container-x grid lg:grid-cols-[1fr_1fr] gap-10">
+        <div id="reviews"></div>
+        <div>
+          <h2 class="font-display font-bold text-2xl mb-4">Related products</h2>
+          ${related.length?`<div class="grid grid-cols-2 gap-4">${related.map(r=>`<a href="product.html?id=${r.id}" class="card overflow-hidden block group"><div style="aspect-ratio:1;background:linear-gradient(135deg,${r.grad[0]},${r.grad[1]})"><div class="w-full h-full grid place-items-center text-4xl">${r.emoji}</div></div><div class="p-3"><p class="text-sm font-medium truncate">${esc(r.title)}</p><p class="text-sm text-zinc-400">${money(r.price)}</p></div></a>`).join("")}</div>`:'<p class="text-zinc-500 text-sm">No related products.</p>'}
+        </div>
+      </div></section>`;
+      $("#revLabel").textContent=reviewLabel(p.id);
+      $("#reviews").innerHTML=reviewBlock();
+      wireReview();
+    }
+    function wireReview(){const f=$("#revForm");if(f)f.addEventListener("submit",e=>{e.preventDefault();const fd=Object.fromEntries(new FormData(f));try{Store.addReview(id,fd.rating,fd.text);toast("Thanks for your review!");render();}catch(err){toast(err.message);}});}
+    window.__q=d=>{qty=Math.max(1,qty+d);$("#qty").textContent=qty;};
+    window.__add=()=>Cart.add(p.id,qty);
+    window.__buy=()=>{Cart.add(p.id,qty);Checkout.open();};
+    window.__wish=()=>{$("#wishTxt").textContent=Wish.has(p.id)?"♥ Saved":"♡ Wishlist";};
+
+    function boot(){if(!window.Store){setTimeout(boot,30);return;}render();}
+    document.addEventListener("DOMContentLoaded",boot);
+  })();
+  </script>
+</body>
+</html>

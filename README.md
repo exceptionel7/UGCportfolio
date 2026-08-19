@@ -109,3 +109,38 @@ Never expose private keys in frontend code.
 Product/portfolio/course thumbnails use branded gradient + emoji tiles instead of
 stock photography, so the site is fully self-contained and has no broken images.
 Swap in real imagery/video by adding `image`/`videoUrl` fields in `data.js`.
+
+
+---
+
+## Platform upgrade (v2) — the full Exceptionel ecosystem
+
+Exceptionel is now a functioning multi-audience platform, not just a landing site.
+It serves **brands, creators, shoppers and course/digital customers** with real,
+working flows built on a backend-ready data layer.
+
+### New capabilities
+
+- **Accounts & roles** — sign up / log in as **Brand**, **Creator** or **Customer** (auth modal in the nav). Role-based dashboards at `account.html`. Admin at `admin.html`.
+- **Brand dashboard** — create campaigns (brief, objective, #videos, budget, deadline), review applications, select creators, review deliverables, request revisions, approve, complete + record payment, message creators, company profile.
+- **Creator dashboard** — profile (bio/location/languages/niches/rates/styles/socials), portfolio, browse & apply to campaigns, submit deliverables & revisions, earnings, messages.
+- **Customer dashboard** — orders (with tracking), digital downloads, enrolled courses with progress, wishlist, addresses, payment history, profile.
+- **Campaign workflow** — full status machine: `Draft → Open → Applications → Creator Selected → In Production → Submitted → Revision Requested → Approved → Completed`, with per-campaign brand↔creator messaging and event notifications.
+- **Creator marketplace** (`marketplace.html`) — filter by category, location, language, price, content style; creator cards + public profiles (`creator.html?id=`); "Invite to Campaign". Populated by **real** creator sign-ups (honest empty state until then).
+- **Service detail pages** (`service.html?slug=`) — explanation, examples, benefits, pricing, deliverables, turnaround, FAQ, CTA.
+- **Product detail pages** (`product.html?id=`) — gallery + video slot, features, **real reviews** (logged-in customers only — none faked), related products, add to cart / buy now.
+- **Courses** (`course.html?id=`) — 5 courses, lessons, progress tracking, completion, student dashboard access.
+- **TikTok Shop hub** — Trending / Creator Picks / Viral Finds / New Arrivals (integration clearly marked "Not connected").
+- **Admin** — live counts (accounts, campaigns, orders, reviews), manage users, campaigns, reviews, coupons, memberships, all CMS content, submissions, and an **email event log**.
+- **Notifications** — in-app bell + panel; every notify also records an email **event** (see Admin → Email Log). Delivery is not faked.
+
+### Architecture
+
+- `assets/js/store.js` — the platform data layer: auth/session, all entities, notifications, and an email-event log. Persists to `localStorage` (`exc_db`). Every method maps 1:1 to a REST endpoint.
+- Making it a **real, shared, multi-user backend** (Postgres + Prisma + Auth.js + Stripe + Resend) is a well-defined next step — see **`BACKEND.md`** for the schema, endpoint map, env vars and migration order.
+
+### Honesty (per spec)
+
+No fake users, reviews, earnings or statistics — everything populates from real
+actions in the app. Payments, email delivery, TikTok Shop and a shared database
+are shown as **integration points**, never faked as connected.

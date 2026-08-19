@@ -37,16 +37,18 @@
   </main>
   <div id="site-footer"></div>
   <script src="assets/js/data.js"></script>
+  <script src="assets/js/store.js"></script>
   <script src="assets/js/components.js"></script>
   <script src="assets/js/app.js"></script>
   <script>
   (function(){
     const $=s=>document.querySelector(s);
     const SECTIONS=[
-      ["overview","Overview","📊"],["stats","Statistics","🔢"],["pricing","UGC Pricing","💵"],
+      ["overview","Overview","📊"],["users","Users","👤"],["campaigns","Campaigns","📢"],
+      ["reviews","Reviews","⭐"],["coupons","Coupons","🏷️"],["stats","Statistics","🔢"],["pricing","UGC Pricing","💵"],
       ["memberships","Memberships","🪪"],["services","UGC Services","🎬"],["products","Shop Products","🛍️"],
       ["digital","Digital Products","⬇️"],["courses","Courses","🎓"],["blog","Blog Posts","📝"],
-      ["portfolio","Portfolio","🎞️"],["submissions","Submissions","📥"],["integrations","Integrations","🔌"]
+      ["portfolio","Portfolio","🎞️"],["submissions","Submissions","📥"],["emaillog","Email Log","📧"],["integrations","Integrations","🔌"]
     ];
     let sec="overview";
 
@@ -68,11 +70,38 @@
 
     const panels={
       overview(){
-        const subs=cnt("subscribers"),cam=cnt("brand_campaigns"),cre=cnt("creator_applications"),ord=cnt("orders");
+        const st=(window.Store&&Store.stats)?Store.stats():{users:0,brands:0,creators:0,customers:0,campaigns:0,orders:0,reviews:0};
         const box=(n,l,ic)=>`<div class="card p-6"><div class="text-2xl">${ic}</div><div class="font-display font-bold text-3xl mt-2">${n}</div><p class="text-sm text-zinc-400">${l}</p></div>`;
-        return `<div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          ${box(ord,"Orders","🧾")}${box(cam,"Brand campaigns","📢")}${box(cre,"Creator applications","🎬")}${box(subs,"Email subscribers","✉️")}</div>
-          ${card('<h2 class="font-display font-bold text-lg mb-2">Manageable areas</h2><p class="text-sm text-zinc-400">Users, creators, brands, products, orders, digital products, UGC campaigns, videos, blog posts, courses, payments, coupons, reviews, subscribers, content, pricing and analytics all live here. This build wires the content + submissions layers; payment/coupon/review modules connect to backend services (see README).</p>')}`;
+        return `<div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+          ${box(st.users,"Total accounts","👤")}${box(st.brands,"Brands","🏷️")}${box(st.creators,"Creators","🎬")}${box(st.customers,"Customers","🛍️")}</div>
+          <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          ${box(st.campaigns,"Campaigns","📢")}${box(st.orders,"Orders","🧾")}${box(st.reviews,"Reviews","⭐")}${box(cnt("subscribers"),"Subscribers","✉️")}</div>
+          ${card('<h2 class="font-display font-bold text-lg mb-2">Live platform data</h2><p class="text-sm text-zinc-400">The counts above are real records created in the running app (accounts, campaigns, orders, reviews). Content sections (pricing, products, courses, blog, memberships) are editable and reflect instantly across the site. Payments, email delivery, TikTok Shop and a shared multi-user database connect via backend services — see BACKEND.md.</p>')}`;
+      },
+      users(){
+        const u=(window.Store&&Store.allUsers)?Store.allUsers():[];
+        if(!u.length)return card('<h2 class="font-display font-bold text-xl mb-2">Users</h2><p class="text-sm text-zinc-400">No accounts yet. Accounts created via sign-up appear here.</p>');
+        return `<h2 class="font-display font-bold text-xl mb-4">Users (${u.length})</h2><div class="grid gap-2">${u.slice().reverse().map(x=>card(`<div class="flex items-center justify-between gap-3"><div class="flex items-center gap-3"><span class="w-9 h-9 rounded-full grid place-items-center font-bold text-white text-sm" style="background:var(--grad)">${(x.name||x.email||"?")[0].toUpperCase()}</span><div><p class="font-semibold text-sm">${(x.name||"—")} <span class="pill text-[10px] ml-1">${x.role}</span></p><p class="text-xs text-zinc-500">${x.email}</p></div></div><button class="text-xs text-rose-400 hover:text-rose-300" onclick="ADMIN.delUser('${x.id}')">Delete</button></div>`)).join("")}</div>`;
+      },
+      campaigns(){
+        const cs=(window.Store&&Store.campaigns)?Store.campaigns():[];
+        if(!cs.length)return card('<h2 class="font-display font-bold text-xl mb-2">Campaigns</h2><p class="text-sm text-zinc-400">No campaigns yet. Brand campaigns appear here as they are created.</p>');
+        return `<h2 class="font-display font-bold text-xl mb-4">Campaigns (${cs.length})</h2><div class="grid gap-2">${cs.slice().reverse().map(c=>{const b=Store.getUser(c.brandId)||{};return card(`<div class="flex items-center justify-between gap-3"><div><p class="font-semibold text-sm">${(c.title||"Untitled")}</p><p class="text-xs text-zinc-500">${(b.name||"Brand")} · ${c.numVideos} video(s) · ${Store.applicationsFor(c.id).length} applicant(s)</p></div><span class="pill text-[11px]">${c.status}</span></div>`);}).join("")}</div>`;
+      },
+      reviews(){
+        const rv=(window.Store&&Store.allReviews)?Store.allReviews():[];
+        if(!rv.length)return card('<h2 class="font-display font-bold text-xl mb-2">Reviews</h2><p class="text-sm text-zinc-400">No reviews yet. Customer reviews appear here for moderation.</p>');
+        return `<h2 class="font-display font-bold text-xl mb-4">Reviews (${rv.length})</h2><div class="grid gap-2">${rv.slice().reverse().map(r=>{const p=(D().products||[]).find(x=>x.id===r.productId)||{};return card(`<div class="flex items-center justify-between gap-3"><div><p class="font-semibold text-sm">${(p.title||r.productId)} — ${"★".repeat(r.rating)}</p><p class="text-xs text-zinc-500">${r.name}: ${(r.text||"").replace(/</g,"&lt;")||"(no text)"}</p></div></div>`);}).join("")}</div>`;
+      },
+      coupons(){
+        const cps=(window.Store&&Store.coupons)?Store.coupons():[];
+        return card(`<h2 class="font-display font-bold text-xl mb-3">Coupons</h2>
+          <div class="flex flex-wrap gap-2 items-end mb-4"><div><label class="label">Code</label><input id="cpCode" class="field !w-40" placeholder="SAVE10"></div><div><label class="label">Percent off</label><input id="cpPct" class="field !w-28" type="number" placeholder="10"></div><button class="btn btn-primary btn-sm" onclick="ADMIN.saveCoupon()">Add / update</button></div>
+          ${cps.length?`<div class="grid gap-2">${cps.map(c=>`<div class="glass rounded-xl p-3 flex items-center justify-between"><span class="font-mono">${c.code} · ${c.percent}% off</span><button class="text-xs text-rose-400" onclick="ADMIN.removeCoupon('${c.code}')">Remove</button></div>`).join("")}</div>`:'<p class="text-sm text-zinc-500">No coupons yet. Coupons apply at checkout once the cart discount hook is enabled.</p>'}`);
+      },
+      emaillog(){
+        const log=(window.Store&&Store.emailLog)?Store.emailLog():[];
+        return card(`<h2 class="font-display font-bold text-xl mb-1">Email event log</h2><p class="text-sm text-zinc-400 mb-4">Every event that <b>would</b> trigger an email is logged here (account, application, selection, submission, revision, approval, payment, order, enrollment). Delivery is <b>not faked</b> — connect an email service (Resend/SendGrid) to actually send. ${log.length} event(s).</p>${log.length?`<pre class="text-xs text-zinc-400 overflow-auto max-h-96">${JSON.stringify(log.slice().reverse(),null,2).replace(/</g,"&lt;")}</pre>`:'<p class="text-sm text-zinc-500">No email events yet.</p>'}`);
       },
       stats(){const s=D().stats;return card(`<h2 class="font-display font-bold text-xl mb-1">Statistics</h2><p class="text-sm text-zinc-400 mb-4">Leave blank to show a dash (—). Only enter real, verified numbers.</p>
         <div class="grid sm:grid-cols-2 gap-4">${s.map((x,i)=>`<div><label class="label">${x.label}</label><div class="flex gap-2"><input class="field" id="stat_${i}" type="number" value="${x.value??''}" placeholder="—"><input class="field !w-20" id="statsuf_${i}" value="${x.suffix||''}" placeholder="+"></div></div>`).join("")}</div>
@@ -114,7 +143,10 @@
       savePricing(){const p=JSON.parse(JSON.stringify(D().pricing));p.forEach((x,i)=>x.price=Number($("#price_"+i).value));setOverride("pricing",p);setOverride("pricingNote",$("#pricingNote").value);ADMIN.render();},
       saveMemberships(){const m=JSON.parse(JSON.stringify(D().memberships));m.forEach((x,i)=>{x.price=Number($("#mem_"+i).value);x.period=$("#memper_"+i).value;});setOverride("memberships",m);ADMIN.render();},
       saveJson(key){try{const val=JSON.parse($("#jsonArea").value);setOverride(key,val);ADMIN.render();}catch(e){toast("Invalid JSON — check your syntax");}},
-      clear(k){if(confirm("Clear all "+k+" submissions?")){localStorage.removeItem("exc_"+k);ADMIN.render();}}
+      clear(k){if(confirm("Clear all "+k+" submissions?")){localStorage.removeItem("exc_"+k);ADMIN.render();}},
+      delUser(id){if(confirm("Delete this account?")){Store.deleteUser(id);toast("Account deleted");ADMIN.render();}},
+      saveCoupon(){const code=($("#cpCode").value||"").trim();const pct=Number($("#cpPct").value);if(!code||!pct){toast("Enter a code and percent");return;}Store.saveCoupon(code,pct);toast("Coupon saved");ADMIN.render();},
+      removeCoupon(code){Store.removeCoupon(code);ADMIN.render();}
     };
     window.ADMIN=ADMIN;
     $("#resetBtn").addEventListener("click",()=>{if(confirm("Reset ALL content overrides to defaults?")){localStorage.removeItem("exc_overrides");toast("Reset to defaults");ADMIN.render();}});

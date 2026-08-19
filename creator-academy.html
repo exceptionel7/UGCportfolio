@@ -45,25 +45,25 @@
   </main>
   <div id="site-footer"></div>
   <script src="assets/js/data.js"></script>
+  <script src="assets/js/store.js"></script>
   <script src="assets/js/components.js"></script>
   <script src="assets/js/app.js"></script>
   <script>
     (function(){const D=window.EXC_DATA;
       document.getElementById("courses").innerHTML=(D.courses||[]).map((c,i)=>`
         <div class="reveal d${(i%3)+1} card overflow-hidden flex flex-col">
-          <div class="relative" style="aspect-ratio:16/10;background:linear-gradient(135deg,${c.grad[0]},${c.grad[1]})">
+          <a href="course.html?id=${c.id}" class="relative block" style="aspect-ratio:16/10;background:linear-gradient(135deg,${c.grad[0]},${c.grad[1]})">
             <div class="absolute inset-0 grid place-items-center text-6xl">${c.emoji}</div>
-          </div>
+          </a>
           <div class="p-6 flex flex-col flex-1">
-            <h3 class="font-display font-bold text-xl">${c.title}</h3>
+            <a href="course.html?id=${c.id}" class="font-display font-bold text-xl hover:text-white">${c.title}</a>
             <p class="text-sm text-zinc-400 mt-2">${c.desc}</p>
-            <p class="text-xs uppercase tracking-wider text-zinc-500 mt-5 mb-2">Lessons</p>
-            <ul class="grid grid-cols-2 gap-x-3 gap-y-1 text-sm text-zinc-300 flex-1">${c.lessons.map(l=>`<li class="flex gap-1.5"><span class="text-fuchsia-400">›</span>${l}</li>`).join("")}</ul>
+            <p class="text-xs uppercase tracking-wider text-zinc-500 mt-5 mb-2">${c.lessons.length} lessons</p>
+            <ul class="grid grid-cols-2 gap-x-3 gap-y-1 text-sm text-zinc-300 flex-1">${c.lessons.slice(0,8).map(l=>`<li class="flex gap-1.5"><span class="text-fuchsia-400">›</span>${l}</li>`).join("")}</ul>
             <div class="flex items-center justify-between mt-6">
               <span class="font-display font-bold text-2xl">$${c.price}</span>
-              <button class="btn btn-primary" onclick="Checkout.buyNow('${c.id}')">Buy Course</button>
+              <a href="course.html?id=${c.id}" class="btn btn-primary">Start Learning</a>
             </div>
-            <a href="account.html#courses" class="text-center text-xs text-zinc-500 mt-3 hover:text-white">Access via your student dashboard →</a>
           </div>
         </div>`).join("");
 
