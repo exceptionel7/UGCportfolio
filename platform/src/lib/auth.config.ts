@@ -13,16 +13,20 @@ export const authConfig = {
     // Put the trusted identity (id + role) into the signed JWT.
     jwt({ token, user }) {
       if (user) {
-        token.id = (user as { id?: string }).id ?? token.sub;
-        token.role = (user as { role?: string }).role ?? "CUSTOMER";
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (token as any).id = (user as any).id ?? token.sub;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (token as any).role = (user as any).role ?? "CUSTOMER";
       }
       return token;
     },
     // Expose id + role on the session (server-verified — not client-supplied).
     session({ session, token }) {
       if (session.user) {
-        (session.user as { id?: string }).id = token.id as string;
-        (session.user as { role?: string }).role = token.role as string;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (session.user as any).id = (token as any).id;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (session.user as any).role = (token as any).role;
       }
       return session;
     },

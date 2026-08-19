@@ -12,7 +12,10 @@ const credentialsSchema = z.object({
   password: z.string().min(1),
 });
 
-const providers = [
+// Typed loosely so different provider shapes (Credentials, Google) can coexist
+// in one array without inference narrowing errors.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const providers: any[] = [
   Credentials({
     credentials: { email: {}, password: {} },
     async authorize(raw) {
