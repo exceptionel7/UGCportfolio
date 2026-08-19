@@ -3,4 +3,4 @@ Allow: /
 Disallow: /admin.html
 Disallow: /account.html
 
-Sitemap: https://exceptionelstudio.com/sitemap.xml
+Sitemap: https://exceptionelstudio.vercel.app/sitemap.xml
