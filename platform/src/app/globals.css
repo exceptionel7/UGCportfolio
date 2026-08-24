@@ -55,6 +55,7 @@ body { background: var(--ink); color: var(--paper); }
   .btn-primary:hover { transform: translateY(-2px); }
   .btn-ghost { border: 1px solid var(--line-strong); color: var(--paper); background: rgba(255, 255, 255, 0.02); }
   .btn-ghost:hover { border-color: var(--brand-2); color: #fff; }
+  .btn-sm { padding: 0.55rem 1rem; font-size: 0.875rem; }
   .field {
     width: 100%; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--line);
     border-radius: 12px; padding: 0.8rem 1rem; color: var(--paper); font-size: 0.95rem;

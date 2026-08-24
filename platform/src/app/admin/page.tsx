@@ -27,12 +27,17 @@ export default async function AdminPage() {
 
   return (
     <main className="container-x py-12">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-4">
         <div>
           <span className="pill mb-2">Admin</span>
           <h1 className="font-display font-bold text-3xl">Platform overview</h1>
         </div>
         <SignOutButton />
+      </div>
+      <div className="flex flex-wrap gap-2 mb-6">
+        <a href="/admin/users" className="btn btn-ghost btn-sm">Users</a>
+        <a href="/admin/campaigns" className="btn btn-ghost btn-sm">Campaigns</a>
+        <a href="/dashboard" className="btn btn-ghost btn-sm">My dashboard</a>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

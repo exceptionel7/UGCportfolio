@@ -1,67 +1,91 @@
 import Link from "next/link";
 import { getSessionUser } from "@/lib/rbac";
 import { prisma } from "@/lib/prisma";
-import { SignOutButton } from "@/components/SignOutButton";
+import { usd } from "@/lib/format";
 
-const ROLE_LABEL: Record<string, string> = {
-  ADMIN: "Admin", BRAND: "Brand dashboard", CREATOR: "Creator dashboard", CUSTOMER: "Your account",
-};
+function Stat({ label, value }: { label: string; value: string | number }) {
+  return (
+    <div className="card p-5">
+      <div className="font-display font-bold text-3xl">{value}</div>
+      <p className="text-sm text-zinc-400">{label}</p>
+    </div>
+  );
+}
 
-export default async function DashboardPage() {
+export default async function DashboardOverview({ searchParams }: { searchParams: { forbidden?: string } }) {
   const user = await getSessionUser();
-  if (!user) return null; // layout guard already redirects
-
-  // Real, DB-backed counts appropriate to the role (empty until data exists — no fakes).
-  let stats: { label: string; value: number }[] = [];
-  if (user.role === "BRAND") {
-    const brand = await prisma.brand.findUnique({ where: { userId: user.id } });
-    const campaigns = brand ? await prisma.campaign.count({ where: { brandId: brand.id } }) : 0;
-    stats = [{ label: "Campaigns", value: campaigns }];
-  } else if (user.role === "CREATOR") {
-    const creator = await prisma.creator.findUnique({ where: { userId: user.id } });
-    const applications = creator ? await prisma.application.count({ where: { creatorId: creator.id } }) : 0;
-    stats = [{ label: "Applications", value: applications }];
-  } else if (user.role === "CUSTOMER") {
-    const orders = await prisma.order.count({ where: { userId: user.id, status: "PAID" } });
-    const enrollments = await prisma.enrollment.count({ where: { userId: user.id } });
-    stats = [{ label: "Paid orders", value: orders }, { label: "Courses", value: enrollments }];
-  }
+  if (!user) return null;
 
   return (
-    <main className="container-x py-12">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div className="flex items-center gap-4">
-          <span className="w-14 h-14 rounded-2xl grid place-items-center font-bold text-white text-xl" style={{ background: "var(--grad)" }}>
-            {(user.name || user.email || "?")[0]?.toUpperCase()}
-          </span>
-          <div>
-            <p className="text-sm text-zinc-500">{ROLE_LABEL[user.role] ?? "Account"}</p>
-            <h1 className="font-display font-bold text-2xl sm:text-3xl">{user.name || user.email}</h1>
-          </div>
+    <div>
+      {searchParams?.forbidden && (
+        <div className="card p-4 mb-5 border !border-amber-500/40 text-amber-300 text-sm">
+          You don&apos;t have access to that area with your current role ({user.role}).
         </div>
-        <div className="flex items-center gap-2">
-          {user.role === "ADMIN" && <Link href="/admin" className="btn btn-ghost">Admin panel</Link>}
-          <SignOutButton />
+      )}
+      <h1 className="font-display font-bold text-2xl sm:text-3xl mb-6">Welcome{user.name ? `, ${user.name}` : ""}</h1>
+
+      {user.role === "BRAND" && (await (async () => {
+        const brand = await prisma.brand.findUnique({ where: { userId: user.id } });
+        const [total, open] = brand
+          ? await Promise.all([
+              prisma.campaign.count({ where: { brandId: brand.id } }),
+              prisma.campaign.count({ where: { brandId: brand.id, status: { in: ["OPEN", "APPLICATIONS"] } } }),
+            ])
+          : [0, 0];
+        return (
+          <>
+            <div className="grid sm:grid-cols-3 gap-4">
+              <Stat label="Campaigns" value={total} />
+              <Stat label="Open for creators" value={open} />
+              <Stat label="Payments (paid)" value={usd(0)} />
+            </div>
+            <div className="flex flex-wrap gap-3 mt-6">
+              <Link href="/dashboard/campaigns/new" className="btn btn-primary">Create a campaign</Link>
+              <Link href="/marketplace" className="btn btn-ghost">Find creators</Link>
+            </div>
+          </>
+        );
+      })())}
+
+      {user.role === "CREATOR" && (await (async () => {
+        const creator = await prisma.creator.findUnique({ where: { userId: user.id } });
+        const [apps, assigned, portfolio] = creator
+          ? await Promise.all([
+              prisma.application.count({ where: { creatorId: creator.id } }),
+              prisma.campaign.count({ where: { selectedCreatorId: creator.id } }),
+              prisma.portfolioItem.count({ where: { creatorId: creator.id } }),
+            ])
+          : [0, 0, 0];
+        return (
+          <>
+            <div className="grid sm:grid-cols-3 gap-4">
+              <Stat label="Applications" value={apps} />
+              <Stat label="Assigned campaigns" value={assigned} />
+              <Stat label="Portfolio items" value={portfolio} />
+            </div>
+            <div className="flex flex-wrap gap-3 mt-6">
+              <Link href="/dashboard/browse" className="btn btn-primary">Browse campaigns</Link>
+              <Link href="/dashboard/profile" className="btn btn-ghost">Complete profile</Link>
+            </div>
+          </>
+        );
+      })())}
+
+      {user.role === "CUSTOMER" && (
+        <div className="card p-6">
+          <p className="text-zinc-300">Your account is active.</p>
+          <p className="text-sm text-zinc-500 mt-2">Shopping, digital products and courses run on the prototype today and are being ported to this production app in later phases.</p>
+          <Link href="/dashboard/profile" className="btn btn-ghost mt-4">Edit profile</Link>
         </div>
-      </div>
+      )}
 
-      <div className="grid sm:grid-cols-3 gap-4 mt-8">
-        {stats.map((s) => (
-          <div key={s.label} className="card p-6">
-            <div className="font-display font-bold text-3xl">{s.value}</div>
-            <p className="text-sm text-zinc-400">{s.label}</p>
-          </div>
-        ))}
-      </div>
-
-      <div className="card p-6 mt-6">
-        <h2 className="font-semibold text-lg mb-2">Signed in securely ✓</h2>
-        <p className="text-sm text-zinc-400">
-          Your session is a server-verified Auth.js JWT and your role (<b>{user.role}</b>) is enforced server-side.
-          Role-specific dashboard modules (campaigns, portfolio, orders, courses) are being wired to this real database in
-          the next phases. Nothing here is fabricated — counts read live from PostgreSQL.
-        </p>
-      </div>
-    </main>
+      {user.role === "ADMIN" && (
+        <div className="card p-6">
+          <p className="text-zinc-300">You are an administrator.</p>
+          <Link href="/admin" className="btn btn-primary mt-4">Open Admin Panel</Link>
+        </div>
+      )}
+    </div>
   );
 }
