@@ -118,10 +118,30 @@ model User {
   downloads     Download[]
   invoices      Invoice[]
   payments      Payment[]
+  fileAssets    FileAsset[]
   sentMessages     Message[] @relation("MessageFrom")
   receivedMessages Message[] @relation("MessageTo")
 
   @@index([role])
+}
+
+// Uploaded file metadata (Phase 8). The binary lives in Vercel Blob; this row
+// records ownership + metadata in PostgreSQL. scope: portfolio | deliverable | brief.
+model FileAsset {
+  id          String   @id @default(cuid())
+  uploaderId  String
+  uploader    User     @relation(fields: [uploaderId], references: [id], onDelete: Cascade)
+  scope       String
+  url         String
+  pathname    String?
+  contentType String?
+  size        Int?
+  campaignId  String?
+  creatorId   String?
+  createdAt   DateTime @default(now())
+
+  @@index([uploaderId])
+  @@index([campaignId])
 }
 
 model Profile {

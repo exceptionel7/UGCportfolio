@@ -2,6 +2,7 @@ import { requireCreator } from "@/lib/guards";
 import { prisma } from "@/lib/prisma";
 import { storageConnected } from "@/lib/storage";
 import { addPortfolioItem, deletePortfolioItem } from "@/lib/actions/portfolio";
+import { FileUploader } from "@/components/FileUploader";
 
 export default async function PortfolioPage() {
   const { creator } = await requireCreator();
@@ -23,7 +24,7 @@ export default async function PortfolioPage() {
         <div><label className="label">Type</label>
           <select className="field" name="kind"><option value="VIDEO">Video</option><option value="IMAGE">Image</option></select>
         </div>
-        <div className="sm:col-span-2"><label className="label">Media URL (required)</label><input className="field" name="url" required placeholder="https://… (hosted video or image)" /></div>
+        <div className="sm:col-span-2"><FileUploader name="url" scope="portfolio" storageConfigured={canUpload} accept="image/*,video/*" label="Media — upload a file or paste a URL (required)" required /></div>
         <div><label className="label">Poster/thumbnail URL (optional)</label><input className="field" name="posterUrl" placeholder="https://" /></div>
         <div><label className="label">Category (optional)</label><input className="field" name="category" placeholder="Beauty, Tech…" /></div>
         <div className="sm:col-span-2"><button className="btn btn-primary">Add portfolio item</button></div>

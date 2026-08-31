@@ -157,6 +157,15 @@ export async function completeCampaign(formData: FormData) {
   revalidatePath(`/dashboard/campaigns/${campaign.id}`);
 }
 
+/* ---------------- BRAND: attach a brief file (Phase 8) ---------------- */
+export async function attachBrief(formData: FormData) {
+  const { campaign } = await ownedCampaignOrThrow(String(formData.get("campaignId") ?? ""));
+  const url = String(formData.get("briefUrl") ?? "").trim();
+  if (!url) return;
+  await prisma.campaign.update({ where: { id: campaign.id }, data: { briefFileUrl: url } });
+  revalidatePath(`/dashboard/campaigns/${campaign.id}`);
+}
+
 /* ---------------- BRAND: invite from marketplace (Phase 6) ---------------- */
 export async function inviteCreator(formData: FormData) {
   const { brand } = await requireBrand();

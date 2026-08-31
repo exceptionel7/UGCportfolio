@@ -5,9 +5,11 @@ import { prisma } from "@/lib/prisma";
 import { usd, fmtDate, CAMPAIGN_STATUS_ORDER, CAMPAIGN_STATUS_LABEL } from "@/lib/format";
 import {
   publishCampaign, selectCreator, rejectApplication, startProduction,
-  submitDeliverable, requestRevision, approveDeliverable, completeCampaign,
+  submitDeliverable, requestRevision, approveDeliverable, completeCampaign, attachBrief,
 } from "@/lib/actions/campaigns";
 import { sendMessage } from "@/lib/actions/messages";
+import { storageConnected } from "@/lib/storage";
+import { FileUploader } from "@/components/FileUploader";
 
 export default async function CampaignDetail({ params }: { params: { id: string } }) {
   const user = await getSessionUser();
@@ -35,6 +37,7 @@ export default async function CampaignDetail({ params }: { params: { id: string 
 
   const currentIdx = CAMPAIGN_STATUS_ORDER.indexOf(campaign.status);
   const canMessage = (isBrand || isCreator) && !!campaign.selectedCreatorId;
+  const canUpload = storageConnected();
 
   return (
     <div>
@@ -59,7 +62,24 @@ export default async function CampaignDetail({ params }: { params: { id: string 
             <button className="btn btn-primary btn-sm">Publish (open to creators)</button>
           </form>
         )}
+        {campaign.briefFileUrl && (
+          <a href={campaign.briefFileUrl} target="_blank" rel="noreferrer" className="inline-block mt-3 text-sm text-gradient">📎 Open brief attachment ↗</a>
+        )}
       </div>
+
+      {/* Brand: attach a brief file */}
+      {isBrand && (
+        <section className="mt-4">
+          <div className="card p-4">
+            <p className="font-semibold text-sm mb-2">Brief attachment {campaign.briefFileUrl ? "· attached ✓" : ""}</p>
+            <form action={attachBrief} className="grid gap-2">
+              <input type="hidden" name="campaignId" value={campaign.id} />
+              <FileUploader name="briefUrl" scope="brief" campaignId={campaign.id} storageConfigured={canUpload} accept="application/pdf,image/*" label="Upload brief (PDF/image) or paste a URL" />
+              <button className="btn btn-ghost btn-sm justify-self-start">Attach brief</button>
+            </form>
+          </div>
+        </section>
+      )}
 
       {/* Status tracker */}
       <div className="card p-4 mt-4 overflow-x-auto">
@@ -124,7 +144,7 @@ export default async function CampaignDetail({ params }: { params: { id: string 
             <form action={submitDeliverable} className="card p-5 grid gap-3">
               <input type="hidden" name="campaignId" value={campaign.id} />
               <div><label className="label">Title</label><input className="field" name="title" required placeholder="Hook A — Unboxing" /></div>
-              <div><label className="label">Video URL (hosted)</label><input className="field" name="fileUrl" placeholder="https://… (direct upload activates once storage is connected)" /></div>
+              <FileUploader name="fileUrl" scope="deliverable" campaignId={campaign.id} storageConfigured={canUpload} accept="video/*,image/*" label="Video — upload a file or paste a URL" />
               <div><label className="label">Note</label><textarea className="field" name="note" rows={2} placeholder="Anything the brand should know" /></div>
               <button className="btn btn-primary btn-sm justify-self-start">Submit for review</button>
             </form>
