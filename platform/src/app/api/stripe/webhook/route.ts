@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import Stripe from "stripe";
 import { getStripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
 
@@ -22,9 +23,9 @@ import { prisma } from "@/lib/prisma";
 export const runtime = "nodejs"; // Stripe SDK requires Node, not the edge runtime
 export const dynamic = "force-dynamic";
 
-function summarize(event: { type: string; data?: { object?: { id?: string } } }): string {
-  const objId = event?.data?.object?.id;
-  return objId ? `${event.type}:${objId}` : event.type;
+function summarize(event: Stripe.Event): string {
+  const obj = event.data?.object as { id?: string } | undefined;
+  return obj?.id ? `${event.type}:${obj.id}` : event.type;
 }
 
 export async function POST(req: Request) {
@@ -42,7 +43,7 @@ export async function POST(req: Request) {
 
   const rawBody = await req.text(); // raw payload — do not parse before verifying
 
-  let event;
+  let event: Stripe.Event;
   try {
     event = stripe.webhooks.constructEvent(rawBody, signature, webhookSecret);
   } catch (err) {
