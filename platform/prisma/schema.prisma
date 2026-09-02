@@ -1,0 +1,736 @@
+// =============================================================================
+// Exceptionel Platform — Prisma schema (PostgreSQL)
+// Phase 2. Money is stored as integer cents. All timestamps are UTC.
+// =============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ----------------------------- Enums -----------------------------
+enum Role {
+  ADMIN
+  BRAND
+  CREATOR
+  CUSTOMER
+}
+
+enum CampaignStatus {
+  DRAFT
+  OPEN
+  APPLICATIONS
+  CREATOR_SELECTED
+  IN_PRODUCTION
+  SUBMITTED
+  REVISION_REQUESTED
+  APPROVED
+  COMPLETED
+}
+
+enum ApplicationStatus {
+  APPLIED
+  APPROVED
+  REJECTED
+}
+
+enum DeliverableStatus {
+  SUBMITTED
+  REVISION_REQUESTED
+  APPROVED
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  FULFILLED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  PAID
+  FAILED
+  REFUNDED
+  PARTIALLY_REFUNDED
+  CANCELED
+}
+
+// Creator earnings ledger status (separate from Payment).
+enum EarningStatus {
+  PENDING   // brand payment PAID, awaiting campaign completion
+  ELIGIBLE  // campaign completed/approved — payable
+  PAID      // included in a Payout that was PAID
+  CANCELED  // voided (e.g., payment refunded before payout) — admin reviewed
+}
+
+// Creator payout status (money out — separate from Payment/Earning).
+enum PayoutStatus {
+  PENDING
+  ELIGIBLE
+  PROCESSING
+  PAID
+  FAILED
+  CANCELED
+}
+
+// Refund record status (mirrors Stripe refund states we care about).
+enum RefundStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  CANCELED
+}
+
+enum PaymentKind {
+  ORDER
+  CAMPAIGN
+  SUBSCRIPTION
+  PAYOUT
+}
+
+enum OrderItemKind {
+  PRODUCT
+  DIGITAL
+  COURSE
+  MEMBERSHIP
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+  INCOMPLETE
+}
+
+enum InvoiceStatus {
+  DRAFT
+  OPEN
+  PAID
+  VOID
+}
+
+enum PortfolioKind {
+  VIDEO
+  IMAGE
+}
+
+// ----------------------------- Auth / Users -----------------------------
+model User {
+  id            String    @id @default(cuid())
+  role          Role      @default(CUSTOMER)
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  passwordHash  String? // bcrypt hash — NEVER plaintext, NEVER base64
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  profile       Profile?
+  creator       Creator?
+  brand         Brand?
+  accounts      Account[]
+  sessions      Session[]
+  orders        Order[]
+  reviews       Review[]
+  enrollments   Enrollment[]
+  notifications Notification[]
+  subscriptions Subscription[]
+  downloads     Download[]
+  invoices      Invoice[]
+  payments      Payment[]
+  fileAssets    FileAsset[]
+  sentMessages     Message[] @relation("MessageFrom")
+  receivedMessages Message[] @relation("MessageTo")
+
+  @@index([role])
+}
+
+// Uploaded file metadata (Phase 8). The binary lives in Vercel Blob; this row
+// records ownership + metadata in PostgreSQL. scope: portfolio | deliverable | brief.
+model FileAsset {
+  id          String   @id @default(cuid())
+  uploaderId  String
+  uploader    User     @relation(fields: [uploaderId], references: [id], onDelete: Cascade)
+  scope       String
+  url         String
+  pathname    String?
+  contentType String?
+  size        Int?
+  campaignId  String?
+  creatorId   String?
+  createdAt   DateTime @default(now())
+
+  @@index([uploaderId])
+  @@index([campaignId])
+}
+
+model Profile {
+  id        String  @id @default(cuid())
+  userId    String  @unique
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  phone     String?
+  address   String?
+  city      String?
+  zip       String?
+  country   String?
+  updatedAt DateTime @updatedAt
+}
+
+model Creator {
+  id         String   @id @default(cuid())
+  userId     String   @unique
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bio        String?
+  location   String?
+  languages  String[]
+  niches     String[]
+  styles     String[]
+  categories String[]
+  socials    Json?
+  rateFromCents Int?
+  avatarUrl  String?
+  createdAt  DateTime @default(now())
+  // Stripe Connect (payouts) — NOT CONNECTED until Connect is configured later.
+  stripeConnectAccountId String? @unique
+  payoutsEnabled         Boolean @default(false)
+
+  portfolio    PortfolioItem[]
+  applications Application[]
+  deliverables Deliverable[]
+  campaigns    Campaign[]      @relation("SelectedCreator")
+  earnings     Earning[]
+  payouts      Payout[]
+
+  @@index([location])
+}
+
+model PortfolioItem {
+  id        String        @id @default(cuid())
+  creatorId String
+  creator   Creator       @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  kind      PortfolioKind @default(VIDEO)
+  url       String // storage URL (Vercel Blob / S3)
+  posterUrl String?
+  title     String?
+  category  String?
+  createdAt DateTime      @default(now())
+}
+
+model Brand {
+  id          String     @id @default(cuid())
+  userId      String     @unique
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companyName String?
+  website     String?
+  about       String?
+  logoUrl     String?
+  createdAt   DateTime   @default(now())
+  // Stripe customer for brand payments — set on first payment, later.
+  stripeCustomerId String? @unique
+  campaigns   Campaign[]
+}
+
+// ----------------------------- Campaigns -----------------------------
+model Campaign {
+  id                String         @id @default(cuid())
+  brandId           String
+  brand             Brand          @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  title             String
+  product           String?
+  productInfo       String?
+  brief             String?
+  briefFileUrl      String?
+  objective         String?
+  numVideos         Int            @default(1)
+  budgetCents       Int?
+  deadline          DateTime?
+  images            String[] // product image URLs
+  status            CampaignStatus @default(DRAFT)
+  selectedCreatorId String?
+  selectedCreator   Creator?       @relation("SelectedCreator", fields: [selectedCreatorId], references: [id])
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  applications Application[]
+  deliverables Deliverable[]
+  messages     Message[]
+  invoice      Invoice?
+  payment      Payment?
+  earning      Earning?
+
+  @@index([status])
+  @@index([brandId])
+}
+
+model Application {
+  id         String            @id @default(cuid())
+  campaignId String
+  campaign   Campaign          @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  creatorId  String
+  creator    Creator           @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  message    String?
+  status     ApplicationStatus @default(APPLIED)
+  createdAt  DateTime          @default(now())
+
+  @@unique([campaignId, creatorId])
+}
+
+model Deliverable {
+  id           String            @id @default(cuid())
+  campaignId   String
+  campaign     Campaign          @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  creatorId    String
+  creator      Creator           @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  title        String
+  note         String?
+  fileUrl      String? // uploaded video (storage)
+  status       DeliverableStatus @default(SUBMITTED)
+  revisionNote String?
+  createdAt    DateTime          @default(now())
+}
+
+model Message {
+  id         String    @id @default(cuid())
+  campaignId String
+  campaign   Campaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  fromId     String
+  from       User      @relation("MessageFrom", fields: [fromId], references: [id])
+  toId       String
+  to         User      @relation("MessageTo", fields: [toId], references: [id])
+  body       String
+  readAt     DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([campaignId])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String
+  body      String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId, read])
+}
+
+// ----------------------------- Commerce -----------------------------
+model Product {
+  id          String   @id @default(cuid())
+  title       String
+  slug        String   @unique
+  description String?
+  category    String
+  priceCents  Int
+  images      String[]
+  videoUrl    String?
+  featured    Boolean  @default(false)
+  viral       Boolean  @default(false)
+  stock       Int?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  reviews    Review[]
+  orderItems OrderItem[]
+
+  @@index([category])
+}
+
+model DigitalProduct {
+  id          String   @id @default(cuid())
+  title       String
+  slug        String   @unique
+  description String?
+  category    String
+  priceCents  Int
+  images      String[]
+  previewUrl  String?
+  fileKey     String? // PRIVATE storage key; served via signed URL only
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  reviews    Review[]
+  downloads  Download[]
+  orderItems OrderItem[]
+
+  @@index([category])
+}
+
+model Order {
+  id                    String      @id @default(cuid())
+  userId                String?
+  user                  User?       @relation(fields: [userId], references: [id])
+  status                OrderStatus @default(PENDING)
+  subtotalCents         Int         @default(0)
+  discountCents         Int         @default(0)
+  totalCents            Int         @default(0)
+  couponCode            String?
+  email                 String?
+  stripeSessionId       String?     @unique
+  stripePaymentIntentId String?
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+
+  items   OrderItem[]
+  payment Payment?
+  invoice Invoice?
+
+  @@index([userId])
+  @@index([status])
+}
+
+model OrderItem {
+  id               String         @id @default(cuid())
+  orderId          String
+  order            Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  kind             OrderItemKind
+  title            String
+  unitPriceCents   Int
+  quantity         Int            @default(1)
+  productId        String?
+  product          Product?       @relation(fields: [productId], references: [id])
+  digitalProductId String?
+  digitalProduct   DigitalProduct? @relation(fields: [digitalProductId], references: [id])
+  courseId         String?
+  course           Course?        @relation(fields: [courseId], references: [id])
+}
+
+model Payment {
+  id         String        @id @default(cuid())
+  kind       PaymentKind
+  status     PaymentStatus @default(PENDING)
+  amountCents Int          // gross amount the brand pays (campaign budget)
+  currency   String        @default("usd")
+  userId     String?
+  user       User?         @relation(fields: [userId], references: [id])
+  orderId    String?       @unique
+  order      Order?        @relation(fields: [orderId], references: [id])
+  campaignId String?       @unique
+  campaign   Campaign?     @relation(fields: [campaignId], references: [id])
+
+  // ---- Stripe references (all set server-side / via verified webhooks) ----
+  stripeCustomerId        String?
+  stripeCheckoutSessionId String? @unique
+  stripePaymentIntentId   String? @unique
+  stripeChargeId          String?
+  idempotencyKey          String? @unique
+  stripeRef               String? // legacy/generic (kept for back-compat; deprecated)
+
+  // ---- Fee accounting (platform fee is DISTINCT from Stripe processing fee) ----
+  platformFeeCents Int? // Exceptionel fee (from PlatformSetting.platformFeeBps)
+  stripeFeeCents   Int? // Stripe processing fee — tracked separately, never merged
+
+  // ---- Refund rollup + failure info ----
+  refundedCents Int      @default(0)
+  failureReason String?
+  metadata      Json?
+  paidAt        DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @default(now()) @updatedAt
+
+  earning Earning?
+  refunds Refund[]
+
+  @@index([userId])
+  @@index([status])
+}
+
+model Coupon {
+  code            String   @id
+  percentOff      Int?
+  amountOffCents  Int?
+  active          Boolean  @default(true)
+  expiresAt       DateTime?
+  maxRedemptions  Int?
+  timesRedeemed   Int      @default(0)
+  createdAt       DateTime @default(now())
+}
+
+// ============================================================================
+// PAYMENTS DOMAIN (design/Step 1 — models only; Stripe NOT CONNECTED yet).
+// Four concepts are kept as SEPARATE records and never conflated:
+//   Payment  = brand money-in     Earning = creator earnings ledger
+//   Payout   = creator money-out   Refund  = refunds       WebhookEvent = idempotency
+// Money is integer cents; fee rates are basis points (bps). 1500 bps = 15%.
+// ============================================================================
+
+// CREATOR EARNINGS — created only after a verified PAID brand payment; becomes
+// ELIGIBLE only after the campaign is completed/approved. net = gross - feeCents.
+model Earning {
+  id         String        @id @default(cuid())
+  campaignId String        @unique
+  campaign   Campaign      @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  creatorId  String
+  creator    Creator       @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  paymentId  String?       @unique
+  payment    Payment?      @relation(fields: [paymentId], references: [id])
+
+  grossCents Int           // = brand payment amount
+  feeBps     Int           // platform fee rate snapshot (basis points)
+  feeCents   Int           // Exceptionel platform fee (gross * feeBps / 10000)
+  netCents   Int           // creator earnings = gross - feeCents
+
+  status     EarningStatus @default(PENDING)
+  eligibleAt DateTime?
+
+  payoutId   String?
+  payout     Payout?       @relation(fields: [payoutId], references: [id])
+
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @default(now()) @updatedAt
+
+  @@index([creatorId])
+  @@index([status])
+  @@index([payoutId])
+}
+
+// CREATOR PAYOUT — aggregates ELIGIBLE earnings. No real transfers yet.
+model Payout {
+  id               String       @id @default(cuid())
+  creatorId        String
+  creator          Creator      @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  amountCents      Int
+  currency         String       @default("usd")
+  status           PayoutStatus @default(PENDING)
+  stripeTransferId String?      @unique
+  stripePayoutId   String?      @unique
+  failureReason    String?
+  paidAt           DateTime?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @default(now()) @updatedAt
+
+  earnings Earning[]
+
+  @@index([creatorId])
+  @@index([status])
+}
+
+// REFUND — refunds must NOT silently create/destroy earnings; requiresAdminReview
+// stays true until the refund→earning business rule is implemented + reviewed.
+model Refund {
+  id                 String       @id @default(cuid())
+  paymentId          String
+  payment            Payment      @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  amountCents        Int
+  stripeRefundId     String       @unique
+  reason             String?
+  status             RefundStatus @default(PENDING)
+  requiresAdminReview Boolean     @default(true)
+  createdAt          DateTime     @default(now())
+
+  @@index([paymentId])
+}
+
+// STRIPE WEBHOOK IDEMPOTENCY — the Stripe event id is the primary key, so the
+// same event can never be processed twice (no duplicate payments/earnings).
+model WebhookEvent {
+  id             String   @id // Stripe event.id
+  type           String
+  payloadSummary String?
+  processedAt    DateTime @default(now())
+
+  @@index([type])
+}
+
+// CONFIGURABLE PLATFORM SETTINGS — platform fee is NOT hardcoded. Singleton row.
+model PlatformSetting {
+  id             String   @id @default("singleton")
+  platformFeeBps Int      @default(1500) // 15%
+  currency       String   @default("usd")
+  updatedAt      DateTime @default(now()) @updatedAt
+}
+
+// ----------------------------- Courses -----------------------------
+model Course {
+  id          String   @id @default(cuid())
+  title       String
+  slug        String   @unique
+  description String?
+  priceCents  Int      @default(0)
+  imageUrl    String?
+  published   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  lessons     Lesson[]
+  enrollments Enrollment[]
+  orderItems  OrderItem[]
+  reviews     Review[]
+}
+
+model Lesson {
+  id          String  @id @default(cuid())
+  courseId    String
+  course      Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  order       Int
+  title       String
+  videoUrl    String? // PRIVATE — access gated by enrollment (signed URL)
+  textContent String?
+  downloadUrl String?
+  durationSec Int?
+
+  progress CourseProgress[]
+
+  @@unique([courseId, order])
+}
+
+model Enrollment {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseId  String
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  completed Boolean  @default(false)
+
+  progress CourseProgress[]
+
+  @@unique([userId, courseId])
+}
+
+model CourseProgress {
+  id           String     @id @default(cuid())
+  enrollmentId String
+  enrollment   Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  lessonId     String
+  lesson       Lesson     @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  completed    Boolean    @default(false)
+  completedAt  DateTime?
+
+  @@unique([enrollmentId, lessonId])
+}
+
+// ----------------------------- Downloads / Reviews -----------------------------
+model Download {
+  id               String         @id @default(cuid())
+  userId           String
+  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  digitalProductId String
+  digitalProduct   DigitalProduct @relation(fields: [digitalProductId], references: [id], onDelete: Cascade)
+  grantedAt        DateTime       @default(now())
+  lastDownloadAt   DateTime?
+  count            Int            @default(0)
+
+  @@unique([userId, digitalProductId])
+}
+
+model Review {
+  id               String   @id @default(cuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rating           Int
+  body             String?
+  createdAt        DateTime @default(now())
+  productId        String?
+  product          Product? @relation(fields: [productId], references: [id])
+  digitalProductId String?
+  digitalProduct   DigitalProduct? @relation(fields: [digitalProductId], references: [id])
+  courseId         String?
+  course           Course?  @relation(fields: [courseId], references: [id])
+
+  @@index([productId])
+}
+
+// ----------------------------- Memberships / Subscriptions -----------------------------
+model Membership {
+  id            String   @id @default(cuid())
+  key           String   @unique // FREE | CREATOR_PRO | BRAND_PRO
+  name          String
+  priceCents    Int      @default(0)
+  interval      String   @default("month")
+  stripePriceId String?
+  features      String[]
+  active        Boolean  @default(true)
+
+  subscriptions Subscription[]
+}
+
+model Subscription {
+  id                   String             @id @default(cuid())
+  userId               String
+  user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  membershipId         String
+  membership           Membership         @relation(fields: [membershipId], references: [id])
+  status               SubscriptionStatus @default(INCOMPLETE)
+  stripeSubscriptionId String?            @unique
+  currentPeriodEnd     DateTime?
+  createdAt            DateTime           @default(now())
+
+  @@index([userId])
+}
+
+model Invoice {
+  id              String        @id @default(cuid())
+  number          String        @unique
+  userId          String?
+  user            User?         @relation(fields: [userId], references: [id])
+  orderId         String?       @unique
+  order           Order?        @relation(fields: [orderId], references: [id])
+  campaignId      String?       @unique
+  campaign        Campaign?     @relation(fields: [campaignId], references: [id])
+  amountCents     Int
+  status          InvoiceStatus @default(OPEN)
+  pdfUrl          String?
+  stripeInvoiceId String?
+  createdAt       DateTime      @default(now())
+}
+
+// ----------------------------- Auth.js adapter models -----------------------------
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// Custom tokens for our own email-verification + password-reset flows
+model EmailVerificationToken {
+  id      String   @id @default(cuid())
+  email   String
+  token   String   @unique
+  expires DateTime
+}
+
+model PasswordResetToken {
+  id      String   @id @default(cuid())
+  email   String
+  token   String   @unique
+  expires DateTime
+}
