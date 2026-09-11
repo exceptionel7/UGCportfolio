@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireBrand, requireCreator, ownedCampaignOrThrow, assignedCampaignOrThrow } from "@/lib/guards";
 import { notify } from "@/lib/notify";
+import { ensureEarning, isCreatorChangeLocked } from "@/lib/payments";
 
 function toCents(v: FormDataEntryValue | null): number | null {
   const n = Number(String(v ?? "").replace(/[^0-9.]/g, ""));
@@ -72,11 +73,40 @@ export async function selectCreator(formData: FormData) {
   if (!app) throw new Error("Application not found");
   const { campaign } = await ownedCampaignOrThrow(app.campaignId); // ownership enforced
 
-  await prisma.$transaction([
-    prisma.application.update({ where: { id: applicationId }, data: { status: "APPROVED" } }),
-    prisma.application.updateMany({ where: { campaignId: campaign.id, id: { not: applicationId } }, data: { status: "REJECTED" } }),
-    prisma.campaign.update({ where: { id: campaign.id }, data: { selectedCreatorId: app.creatorId, status: "CREATOR_SELECTED" } }),
-  ]);
+  // IDEMPOTENT REPLAY: if this exact creator is already selected, the call is a
+  // duplicate submission. Return before any write so a re-POST cannot regress
+  // campaign.status (e.g. APPROVED/COMPLETED -> CREATOR_SELECTED), re-open
+  // rejected applications, or re-notify the creator.
+  if (campaign.selectedCreatorId === app.creatorId) {
+    return;
+  }
+
+  await prisma.$transaction(async (tx) => {
+    // MONEY-INTEGRITY GUARD (inside the interactive transaction, using tx reads
+    // so the check and the write cannot be split by a concurrent request).
+    // The UI hides "Select" once a creator is chosen, but this action could still
+    // be re-POSTed. Once funding is IN PROGRESS (PROCESSING) or complete (PAID),
+    // or once an Earning exists, the payee is fixed and must not change —
+    // otherwise the assignment and the payee diverge.
+    // Re-selection remains allowed only pre-funding or after a FAILED/CANCELED
+    // attempt, and only while no Earning exists.
+    if (campaign.selectedCreatorId && campaign.selectedCreatorId !== app.creatorId) {
+      const [earning, payment] = await Promise.all([
+        tx.earning.findUnique({ where: { campaignId: campaign.id } }),
+        tx.payment.findUnique({ where: { campaignId: campaign.id } }),
+      ]);
+      if (isCreatorChangeLocked({ paymentStatus: payment?.status, earningExists: !!earning })) {
+        throw new Error("Cannot change the selected creator once funding has started.");
+      }
+    }
+
+    await tx.application.update({ where: { id: applicationId }, data: { status: "APPROVED" } });
+    await tx.application.updateMany({ where: { campaignId: campaign.id, id: { not: applicationId } }, data: { status: "REJECTED" } });
+    await tx.campaign.update({ where: { id: campaign.id }, data: { selectedCreatorId: app.creatorId, status: "CREATOR_SELECTED" } });
+    // Safety net: under Decision #4 Option B a funded campaign always has a
+    // creator, so this is a no-op. Kept in case the rule is ever relaxed.
+    await ensureEarning(tx, campaign.id);
+  });
   await notify(await creatorUserId(app.creatorId), "selected", `You were selected for "${campaign.title}".`);
   revalidatePath(`/dashboard/campaigns/${campaign.id}`);
 }

@@ -428,7 +428,8 @@ model Payment {
   stripeRef               String? // legacy/generic (kept for back-compat; deprecated)
 
   // ---- Fee accounting (platform fee is DISTINCT from Stripe processing fee) ----
-  platformFeeCents Int? // Exceptionel fee (from PlatformSetting.platformFeeBps)
+  platformFeeBps   Int? // rate SNAPSHOT at funding time — later fee changes never alter this payment
+  platformFeeCents Int? // Exceptionel fee (gross * platformFeeBps / 10000)
   stripeFeeCents   Int? // Stripe processing fee — tracked separately, never merged
 
   // ---- Refund rollup + failure info ----
