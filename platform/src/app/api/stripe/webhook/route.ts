@@ -42,7 +42,8 @@ class DuplicateWebhookEvent extends Error {
 }
 
 function summarize(event: Stripe.Event): string {
-  const obj = event.data?.object as { id?: string } | undefined;
+  // Same reasoning as extractSettleInput: cast the Stripe union via `unknown`.
+  const obj = event.data?.object as unknown as { id?: string } | undefined;
   return obj?.id ? `${event.type}:${obj.id}` : event.type;
 }
 

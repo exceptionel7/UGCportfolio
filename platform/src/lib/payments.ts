@@ -73,9 +73,12 @@ function asId(v: unknown): string | null {
 
 /** Extract a normalized SettleInput from a Stripe event object. */
 export function extractSettleInput(event: Stripe.Event): SettleInput | null {
-  const obj = event.data.object as Record<string, unknown>;
+  // NOTE: event.data.object is a very large Stripe union. Casting it to
+  // Record<string, unknown> is rejected by TS (no index signature on members
+  // like ReceivedDebit), so each branch casts via `unknown` after narrowing on
+  // event.type — which is the discriminant that actually guarantees the shape.
   if (event.type === "checkout.session.completed") {
-    const s = obj as unknown as Stripe.Checkout.Session;
+    const s = event.data.object as unknown as Stripe.Checkout.Session;
     if (s.payment_status !== "paid") return null; // only settle truly paid sessions
     return {
       paymentId: s.metadata?.paymentId ?? null,
@@ -88,7 +91,7 @@ export function extractSettleInput(event: Stripe.Event): SettleInput | null {
     };
   }
   if (event.type === "payment_intent.succeeded") {
-    const pi = obj as unknown as Stripe.PaymentIntent;
+    const pi = event.data.object as unknown as Stripe.PaymentIntent;
     return {
       paymentId: pi.metadata?.paymentId ?? null,
       campaignId: pi.metadata?.campaignId ?? null,
@@ -132,7 +135,9 @@ export async function settleCampaignPayment(tx: Tx, input: SettleInput): Promise
 
   // --- Duplicate/overpayment guard: a DIFFERENT PaymentIntent on an already-paid campaign ---
   if (payment.status === "PAID" && payment.stripePaymentIntentId && input.paymentIntentId && payment.stripePaymentIntentId !== input.paymentIntentId) {
-    const meta = (payment.metadata as Record<string, unknown> | null) ?? {};
+    // Prisma JsonValue is also a union (string | number | boolean | object | null),
+    // so cast via `unknown` for the same reason as the Stripe casts above.
+    const meta = (payment.metadata as unknown as Record<string, unknown> | null) ?? {};
     const dupes = Array.isArray(meta.duplicateCharges) ? (meta.duplicateCharges as string[]) : [];
     if (!dupes.includes(input.paymentIntentId)) dupes.push(input.paymentIntentId);
     await tx.payment.update({ where: { id: payment.id }, data: { metadata: { ...meta, duplicateCharges: dupes } } });
