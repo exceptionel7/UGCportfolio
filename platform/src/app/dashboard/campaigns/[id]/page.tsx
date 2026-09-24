@@ -8,10 +8,18 @@ import {
   submitDeliverable, requestRevision, approveDeliverable, completeCampaign, attachBrief,
 } from "@/lib/actions/campaigns";
 import { sendMessage } from "@/lib/actions/messages";
+import { createCampaignCheckout, reconcileCampaignPayment } from "@/lib/actions/payments";
 import { storageConnected } from "@/lib/storage";
+import { stripeConnected } from "@/lib/stripe";
 import { FileUploader } from "@/components/FileUploader";
 
-export default async function CampaignDetail({ params }: { params: { id: string } }) {
+export default async function CampaignDetail({
+  params,
+  searchParams,
+}: {
+  params: { id: string };
+  searchParams?: { funding?: string };
+}) {
   const user = await getSessionUser();
   if (!user) redirect("/login");
 
@@ -20,6 +28,8 @@ export default async function CampaignDetail({ params }: { params: { id: string 
     include: {
       brand: { include: { user: { select: { id: true, name: true, email: true } } } },
       selectedCreator: { include: { user: { select: { id: true, name: true, email: true } } } },
+      payment: true,
+      earning: true,
       applications: {
         orderBy: { createdAt: "asc" },
         include: { creator: { include: { user: { select: { name: true, email: true } }, _count: { select: { portfolio: true } } } } },
@@ -38,6 +48,13 @@ export default async function CampaignDetail({ params }: { params: { id: string 
   const currentIdx = CAMPAIGN_STATUS_ORDER.indexOf(campaign.status);
   const canMessage = (isBrand || isCreator) && !!campaign.selectedCreatorId;
   const canUpload = storageConnected();
+
+  // ---- Funding state (brand only). Read from the DB; never from the URL. ----
+  const stripeReady = stripeConnected();
+  const payment = campaign.payment;
+  const isPaid = payment?.status === "PAID";
+  const isInFlight = payment?.status === "PROCESSING";
+  const canFund = !!campaign.selectedCreatorId && !!campaign.budgetCents && campaign.budgetCents > 0;
 
   return (
     <div>
@@ -66,6 +83,90 @@ export default async function CampaignDetail({ params }: { params: { id: string 
           <a href={campaign.briefFileUrl} target="_blank" rel="noreferrer" className="inline-block mt-3 text-sm text-gradient">📎 Open brief attachment ↗</a>
         )}
       </div>
+
+      {/* Brand: campaign funding. Status comes from the DB (Payment.status),
+          which only a verified Stripe webhook can set to PAID. The ?funding=
+          query param is presentational ONLY and never implies success. */}
+      {isBrand && (
+        <section className="mt-4">
+          <div className="card p-5">
+            <div className="flex items-start justify-between gap-3 flex-wrap">
+              <div>
+                <p className="font-semibold">Funding</p>
+                <p className="text-xs text-zinc-500 mt-0.5">
+                  {stripeReady
+                    ? "Stripe test mode — no real money moves."
+                    : "STRIPE NOT CONNECTED — set STRIPE_SECRET_KEY to enable funding."}
+                </p>
+              </div>
+              <span className="pill text-[11px]">{payment ? payment.status : "NOT FUNDED"}</span>
+            </div>
+
+            {searchParams?.funding === "confirming" && !isPaid && (
+              <p className="text-sm text-amber-300 mt-3">
+                Checkout submitted. Waiting for Stripe to confirm via webhook — this is not a confirmation of payment.
+                Refresh in a moment, or use “Check with Stripe” below.
+              </p>
+            )}
+            {searchParams?.funding === "canceled" && (
+              <p className="text-sm text-zinc-400 mt-3">Checkout was canceled. No charge was made.</p>
+            )}
+
+            {isPaid ? (
+              <div className="mt-4 grid sm:grid-cols-3 gap-3">
+                <div className="glass rounded-xl p-3">
+                  <p className="text-[11px] text-zinc-500 uppercase tracking-wider">Gross paid</p>
+                  <p className="font-display font-bold text-lg">{usd(payment?.amountCents)}</p>
+                </div>
+                <div className="glass rounded-xl p-3">
+                  <p className="text-[11px] text-zinc-500 uppercase tracking-wider">Platform fee</p>
+                  <p className="font-display font-bold text-lg">{usd(campaign.earning?.feeCents ?? payment?.platformFeeCents)}</p>
+                </div>
+                <div className="glass rounded-xl p-3">
+                  <p className="text-[11px] text-zinc-500 uppercase tracking-wider">Creator earnings</p>
+                  <p className="font-display font-bold text-lg">{usd(campaign.earning?.netCents)}</p>
+                </div>
+                <p className="sm:col-span-3 text-xs text-zinc-500">
+                  Confirmed by a verified Stripe webhook{payment?.paidAt ? ` on ${fmtDate(payment.paidAt)}` : ""}. Creator
+                  earnings are recorded as {campaign.earning?.status ?? "—"}; payouts are not yet implemented.
+                </p>
+              </div>
+            ) : !stripeReady ? null : isInFlight ? (
+              <div className="flex flex-wrap gap-2 mt-4">
+                <form action={createCampaignCheckout}>
+                  <input type="hidden" name="campaignId" value={campaign.id} />
+                  <button className="btn btn-ghost btn-sm">Resume checkout</button>
+                </form>
+                <form action={reconcileCampaignPayment}>
+                  <input type="hidden" name="campaignId" value={campaign.id} />
+                  <button className="btn btn-ghost btn-sm">Check with Stripe</button>
+                </form>
+              </div>
+            ) : (
+              <div className="mt-4">
+                {payment?.status === "FAILED" && payment.failureReason && (
+                  <p className="text-sm text-rose-400 mb-3">Last attempt failed: {payment.failureReason}</p>
+                )}
+                {!campaign.selectedCreatorId ? (
+                  <p className="text-sm text-zinc-400">Select a creator before funding this campaign.</p>
+                ) : !campaign.budgetCents || campaign.budgetCents <= 0 ? (
+                  <p className="text-sm text-zinc-400">Set a campaign budget before funding.</p>
+                ) : (
+                  <form action={createCampaignCheckout} className="flex items-center gap-3 flex-wrap">
+                    <input type="hidden" name="campaignId" value={campaign.id} />
+                    <button className="btn btn-primary btn-sm" disabled={!canFund}>
+                      Fund campaign — {usd(campaign.budgetCents)} (test mode)
+                    </button>
+                    <span className="text-xs text-zinc-500">
+                      Opens Stripe Checkout. Payment is only recorded once Stripe confirms it.
+                    </span>
+                  </form>
+                )}
+              </div>
+            )}
+          </div>
+        </section>
+      )}
 
       {/* Brand: attach a brief file */}
       {isBrand && (
