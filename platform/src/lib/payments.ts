@@ -26,6 +26,34 @@ export function isUniqueViolation(e: unknown): boolean {
 }
 
 /**
+ * Pure predicate — may this campaign be funded?
+ *
+ *   • COMPLETED            ⇒ no (terminal state, closed to new funding)
+ *   • no selected creator  ⇒ no (Decision #4 Option B — money needs a payee)
+ *   • no positive budget   ⇒ no (amount always comes from the DB)
+ *
+ * Single definition, used by BOTH the server action (authoritative) and the UI
+ * (presentation), so they can never disagree.
+ */
+export function isCampaignFundable(args: {
+  status: string;
+  selectedCreatorId?: string | null;
+  budgetCents?: number | null;
+}): { ok: boolean; reason?: "COMPLETED" | "NO_CREATOR" | "NO_BUDGET" } {
+  if (args.status === "COMPLETED") return { ok: false, reason: "COMPLETED" };
+  if (!args.selectedCreatorId) return { ok: false, reason: "NO_CREATOR" };
+  if (!args.budgetCents || args.budgetCents <= 0) return { ok: false, reason: "NO_BUDGET" };
+  return { ok: true };
+}
+
+/** Human-readable reason, shared by the action's error and the UI copy. */
+export const FUNDING_BLOCKED_MESSAGE: Record<"COMPLETED" | "NO_CREATOR" | "NO_BUDGET", string> = {
+  COMPLETED: "This campaign is completed and can no longer be funded.",
+  NO_CREATOR: "Select a creator before funding this campaign.",
+  NO_BUDGET: "Set a campaign budget before funding.",
+};
+
+/**
  * Pure predicate — may the selected creator still be changed?
  *
  * LOCKED once funding is in progress or complete, or once an Earning exists:

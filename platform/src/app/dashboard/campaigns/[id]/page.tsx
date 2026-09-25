@@ -9,6 +9,7 @@ import {
 } from "@/lib/actions/campaigns";
 import { sendMessage } from "@/lib/actions/messages";
 import { createCampaignCheckout, reconcileCampaignPayment } from "@/lib/actions/payments";
+import { isCampaignFundable, FUNDING_BLOCKED_MESSAGE } from "@/lib/payments";
 import { storageConnected } from "@/lib/storage";
 import { stripeConnected } from "@/lib/stripe";
 import { FileUploader } from "@/components/FileUploader";
@@ -54,7 +55,12 @@ export default async function CampaignDetail({
   const payment = campaign.payment;
   const isPaid = payment?.status === "PAID";
   const isInFlight = payment?.status === "PROCESSING";
-  const canFund = !!campaign.selectedCreatorId && !!campaign.budgetCents && campaign.budgetCents > 0;
+  // Same predicate the server action enforces, so UI and server cannot disagree.
+  const fundable = isCampaignFundable({
+    status: campaign.status,
+    selectedCreatorId: campaign.selectedCreatorId,
+    budgetCents: campaign.budgetCents,
+  });
 
   return (
     <div>
@@ -147,14 +153,12 @@ export default async function CampaignDetail({
                 {payment?.status === "FAILED" && payment.failureReason && (
                   <p className="text-sm text-rose-400 mb-3">Last attempt failed: {payment.failureReason}</p>
                 )}
-                {!campaign.selectedCreatorId ? (
-                  <p className="text-sm text-zinc-400">Select a creator before funding this campaign.</p>
-                ) : !campaign.budgetCents || campaign.budgetCents <= 0 ? (
-                  <p className="text-sm text-zinc-400">Set a campaign budget before funding.</p>
+                {!fundable.ok ? (
+                  <p className="text-sm text-zinc-400">{FUNDING_BLOCKED_MESSAGE[fundable.reason!]}</p>
                 ) : (
                   <form action={createCampaignCheckout} className="flex items-center gap-3 flex-wrap">
                     <input type="hidden" name="campaignId" value={campaign.id} />
-                    <button className="btn btn-primary btn-sm" disabled={!canFund}>
+                    <button className="btn btn-primary btn-sm">
                       Fund campaign — {usd(campaign.budgetCents)} (test mode)
                     </button>
                     <span className="text-xs text-zinc-500">

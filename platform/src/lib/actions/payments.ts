@@ -5,7 +5,15 @@ import { prisma } from "@/lib/prisma";
 import { getStripe } from "@/lib/stripe";
 import { ownedCampaignOrThrow } from "@/lib/guards";
 import { getSessionUser } from "@/lib/rbac";
-import { feeSplit, getPlatformSetting, extractSettleInput, settleCampaignPayment, isUniqueViolation } from "@/lib/payments";
+import {
+  feeSplit,
+  getPlatformSetting,
+  extractSettleInput,
+  settleCampaignPayment,
+  isUniqueViolation,
+  isCampaignFundable,
+  FUNDING_BLOCKED_MESSAGE,
+} from "@/lib/payments";
 
 /**
  * Brand-initiated campaign funding (Step 3, TEST MODE).
@@ -24,17 +32,19 @@ export async function createCampaignCheckout(formData: FormData) {
   const stripe = getStripe();
   if (!stripe) throw new Error("STRIPE_NOT_CONNECTED");
 
-  // ---- BUSINESS RULE (Decision #4, Option B) ----
-  // A campaign may only be funded once a creator is selected. This makes the
-  // "funded but unmatched" state impossible, so money never enters the platform
-  // without a known payee — important while refunds are still out of scope.
-  if (!campaign.selectedCreatorId) {
-    throw new Error("Select a creator before funding this campaign.");
-  }
+  // ---- BUSINESS RULES (authoritative, server-side) ----
+  // Decision #4 Option B: a creator must be selected, so money never enters the
+  // platform without a known payee. Plus: a COMPLETED campaign is terminal and
+  // closed to new funding. A positive budget is required.
+  const fundable = isCampaignFundable({
+    status: campaign.status,
+    selectedCreatorId: campaign.selectedCreatorId,
+    budgetCents: campaign.budgetCents,
+  });
+  if (!fundable.ok) throw new Error(FUNDING_BLOCKED_MESSAGE[fundable.reason!]);
 
   // Amount comes from the DB only — never from the browser.
-  const gross = campaign.budgetCents;
-  if (!gross || gross <= 0) throw new Error("Set a campaign budget before funding.");
+  const gross = campaign.budgetCents!;
 
   const setting = await getPlatformSetting();
   const feeBps = setting.platformFeeBps;
