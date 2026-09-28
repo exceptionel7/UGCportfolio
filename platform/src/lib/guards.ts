@@ -34,6 +34,21 @@ export async function requireCustomer() {
   return { user };
 }
 
+/**
+ * Require an ADMIN for a mutation. Throws (rather than redirecting) to match
+ * the pattern used by the other mutation guards.
+ *
+ * NOTE: /admin pages are already protected by app/admin/layout.tsx, but a
+ * layout cannot protect a server action — actions are separate POST endpoints
+ * and must each guard themselves. Every admin payout action calls this.
+ */
+export async function requireAdmin() {
+  const user = await getSessionUser();
+  if (!user) throw new Error("Unauthorized");
+  if (user.role !== "ADMIN") throw new Error("FORBIDDEN: admin only");
+  return { user };
+}
+
 /** Loads a campaign only if the current BRAND owns it. Throws otherwise. */
 export async function ownedCampaignOrThrow(campaignId: string) {
   const { brand } = await requireBrand();

@@ -37,6 +37,7 @@ export default async function AdminPage() {
       <div className="flex flex-wrap gap-2 mb-6">
         <a href="/admin/users" className="btn btn-ghost btn-sm">Users</a>
         <a href="/admin/campaigns" className="btn btn-ghost btn-sm">Campaigns</a>
+        <a href="/admin/payouts" className="btn btn-ghost btn-sm">Payouts</a>
         <a href="/dashboard" className="btn btn-ghost btn-sm">My dashboard</a>
       </div>
 

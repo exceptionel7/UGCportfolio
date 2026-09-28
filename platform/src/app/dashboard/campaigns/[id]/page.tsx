@@ -134,7 +134,8 @@ export default async function CampaignDetail({
                 </div>
                 <p className="sm:col-span-3 text-xs text-zinc-500">
                   Confirmed by a verified Stripe webhook{payment?.paidAt ? ` on ${fmtDate(payment.paidAt)}` : ""}. Creator
-                  earnings are recorded as {campaign.earning?.status ?? "—"}; payouts are not yet implemented.
+                  earnings are recorded as {campaign.earning?.status ?? "—"}
+                  {campaign.earning?.status === "PENDING" ? " — they become eligible for payout when this campaign is completed." : "."}
                 </p>
               </div>
             ) : !stripeReady ? null : isInFlight ? (
@@ -294,7 +295,7 @@ export default async function CampaignDetail({
             <form action={completeCampaign} className="card p-4 mt-3 flex items-center justify-between gap-3 flex-wrap">
               <div>
                 <p className="font-semibold text-sm">Complete campaign</p>
-                <p className="text-xs text-zinc-500">Marks it complete & notifies the creator. Payout occurs once payments are connected (NOT CONNECTED).</p>
+                <p className="text-xs text-zinc-500">Marks it complete & notifies the creator. If this campaign is funded, the creator&apos;s earnings become eligible for payout.</p>
               </div>
               <input type="hidden" name="id" value={campaign.id} />
               <button className="btn btn-primary btn-sm">Mark complete</button>

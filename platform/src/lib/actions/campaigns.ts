@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireBrand, requireCreator, ownedCampaignOrThrow, assignedCampaignOrThrow } from "@/lib/guards";
 import { notify } from "@/lib/notify";
-import { ensureEarning, isCreatorChangeLocked } from "@/lib/payments";
+import { ensureEarning, isCreatorChangeLocked, markEarningEligible } from "@/lib/payments";
 
 function toCents(v: FormDataEntryValue | null): number | null {
   const n = Number(String(v ?? "").replace(/[^0-9.]/g, ""));
@@ -178,13 +178,28 @@ export async function approveDeliverable(formData: FormData) {
 
 export async function completeCampaign(formData: FormData) {
   const { campaign } = await ownedCampaignOrThrow(String(formData.get("id") ?? ""));
-  await prisma.campaign.update({ where: { id: campaign.id }, data: { status: "COMPLETED" } });
-  // NOTE: no payment/earnings are recorded here. Real payouts require Stripe
-  // (NOT CONNECTED). Earnings are only ever shown from PAID Payment records.
+
+  // Completing the campaign and releasing the earning (PENDING → ELIGIBLE) happen
+  // in ONE transaction, so a COMPLETED campaign can never be left holding a
+  // still-PENDING earning. markEarningEligible is idempotent and refuses to
+  // release unless the funding Payment is PAID.
+  const released = await prisma.$transaction(async (tx) => {
+    await tx.campaign.update({ where: { id: campaign.id }, data: { status: "COMPLETED" } });
+    return markEarningEligible(tx, campaign.id);
+  });
+
   if (campaign.selectedCreatorId) {
-    await notify(await creatorUserId(campaign.selectedCreatorId), "campaign_completed", `"${campaign.title}" is complete. Payout occurs once payments are connected.`);
+    await notify(
+      await creatorUserId(campaign.selectedCreatorId),
+      "campaign_completed",
+      released
+        ? `"${campaign.title}" is complete. Your earnings are now eligible for payout.`
+        : `"${campaign.title}" is complete.`,
+    );
   }
   revalidatePath(`/dashboard/campaigns/${campaign.id}`);
+  revalidatePath("/dashboard/earnings");
+  revalidatePath("/admin/payouts");
 }
 
 /* ---------------- BRAND: attach a brief file (Phase 8) ---------------- */

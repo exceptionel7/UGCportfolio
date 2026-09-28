@@ -226,12 +226,77 @@ export async function ensureEarning(tx: Tx, campaignId: string): Promise<void> {
         feeBps,
         feeCents,
         netCents,
-        status: "PENDING", // becomes ELIGIBLE only on completion (a later, separate step)
+        status: "PENDING", // becomes ELIGIBLE on completion — see markEarningEligible()
       },
     });
   } catch (e) {
     if (!isUniqueViolation(e)) throw e; // already created by an earlier event — fine
   }
+}
+
+/* ======================================================================
+ * EARNING LIFECYCLE:  PENDING → ELIGIBLE → PAID   (ledger-only payouts)
+ *
+ * No money moves through Stripe here. A Payout is an internal ledger record
+ * that an ADMIN settles out-of-band and then marks PAID. Creator.stripeConnect-
+ * AccountId / payoutsEnabled stay unused until Connect is actually configured,
+ * so nothing in this file ever fakes a transfer.
+ * ====================================================================== */
+
+/** Pure sum of creator-net cents. One definition for both payouts and UI. */
+export function sumNetCents(earnings: { netCents: number }[]): number {
+  return earnings.reduce((total, e) => total + e.netCents, 0);
+}
+
+/**
+ * Pure predicate — may this earning become ELIGIBLE (payable)?
+ *
+ *   • campaign not COMPLETED ⇒ no (work isn't finished)
+ *   • payment not PAID       ⇒ no (an unfunded campaign must never be payable)
+ *   • earning not PENDING    ⇒ no (already ELIGIBLE/PAID/CANCELED — never go back)
+ *
+ * Exported so the server action (authoritative) and any UI copy share one rule.
+ */
+export function isEarningEligibleForRelease(args: {
+  campaignStatus: string;
+  paymentStatus?: string | null;
+  earningStatus?: string | null;
+}): boolean {
+  return args.campaignStatus === "COMPLETED" && args.paymentStatus === "PAID" && args.earningStatus === "PENDING";
+}
+
+/**
+ * PENDING → ELIGIBLE. Called when a campaign reaches COMPLETED.
+ *
+ * MUST be called inside the same transaction that sets the campaign COMPLETED,
+ * so the two facts can never diverge.
+ *
+ * Idempotent and monotonic: the `status: "PENDING"` filter on updateMany means
+ * re-running is a no-op and an already PAID or CANCELED earning can never be
+ * dragged backwards. Returns true only when it actually flipped a row.
+ */
+export async function markEarningEligible(tx: Tx, campaignId: string): Promise<boolean> {
+  const campaign = await tx.campaign.findUnique({
+    where: { id: campaignId },
+    include: { payment: true, earning: true },
+  });
+  if (!campaign?.earning) return false; // nothing funded/recorded yet
+
+  if (
+    !isEarningEligibleForRelease({
+      campaignStatus: campaign.status,
+      paymentStatus: campaign.payment?.status,
+      earningStatus: campaign.earning.status,
+    })
+  ) {
+    return false;
+  }
+
+  const { count } = await tx.earning.updateMany({
+    where: { campaignId, status: "PENDING" }, // re-checked in SQL — concurrency-safe
+    data: { status: "ELIGIBLE", eligibleAt: new Date() },
+  });
+  return count > 0;
 }
 
 /** payment_intent.payment_failed */
