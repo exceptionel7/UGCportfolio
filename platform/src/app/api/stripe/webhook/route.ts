@@ -9,6 +9,8 @@ import {
   recordRefundForReview,
   isUniqueViolation,
 } from "@/lib/payments";
+import { applyAccountUpdate, type RawAccountShape } from "@/lib/connect";
+import { settleTransferCreated, handleTransferReversed, type TransferShape } from "@/lib/connect-payouts";
 
 /**
  * Stripe webhook (Step 3).
@@ -39,6 +41,16 @@ class DuplicateWebhookEvent extends Error {
     super(`Duplicate Stripe event ${eventId}`);
     this.name = "DuplicateWebhookEvent";
   }
+}
+
+/** Narrow a Stripe Transfer to the fields payout settlement actually needs. */
+function toTransferShape(t: Stripe.Transfer): TransferShape {
+  return {
+    id: t.id,
+    amount: t.amount ?? null,
+    currency: t.currency ?? null,
+    metadata: (t.metadata as unknown as Record<string, string> | null) ?? null,
+  };
 }
 
 function summarize(event: Stripe.Event): string {
@@ -96,6 +108,27 @@ export async function POST(req: Request) {
           case "charge.dispute.created":
             await recordRefundForReview(tx, event); // records + flags; earnings untouched
             break;
+
+          /* ---- Stripe Connect (creator payouts). Additive: these previously
+                  fell through to `default` and were recorded but not acted on. ---- */
+          case "account.updated": {
+            // Express connected-account lifecycle → Creator.payoutsEnabled.
+            const account = event.data.object as unknown as RawAccountShape;
+            await applyAccountUpdate(tx, account);
+            break;
+          }
+          case "transfer.created": {
+            // THE settlement point for a payout: PROCESSING → PAID.
+            const t = event.data.object as unknown as Stripe.Transfer;
+            await settleTransferCreated(tx, toTransferShape(t));
+            break;
+          }
+          case "transfer.reversed": {
+            const t = event.data.object as unknown as Stripe.Transfer;
+            await handleTransferReversed(tx, toTransferShape(t));
+            break;
+          }
+
           default:
             break; // recorded for audit/idempotency only
         }
