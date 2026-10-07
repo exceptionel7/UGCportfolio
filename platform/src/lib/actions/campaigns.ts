@@ -177,14 +177,30 @@ export async function approveDeliverable(formData: FormData) {
 }
 
 export async function completeCampaign(formData: FormData) {
-  const { campaign } = await ownedCampaignOrThrow(String(formData.get("id") ?? ""));
+  const { campaign } = await ownedCampaignOrThrow(String(formData.get("id") ?? "")); // ownership enforced
+
+  // SERVER-SIDE completion gate. Only an APPROVED campaign (the brand accepted a
+  // deliverable) may be completed. The UI only renders this action at APPROVED,
+  // but a server action is a public POST endpoint and must enforce it itself —
+  // otherwise a direct call could complete a DRAFT/OPEN/IN_PRODUCTION campaign
+  // and release earnings for work that was never approved.
+  if (campaign.status !== "APPROVED") {
+    throw new Error(`This campaign cannot be completed from status ${campaign.status}. Approve a deliverable first.`);
+  }
 
   // Completing the campaign and releasing the earning (PENDING → ELIGIBLE) happen
   // in ONE transaction, so a COMPLETED campaign can never be left holding a
   // still-PENDING earning. markEarningEligible is idempotent and refuses to
   // release unless the funding Payment is PAID.
   const released = await prisma.$transaction(async (tx) => {
-    await tx.campaign.update({ where: { id: campaign.id }, data: { status: "COMPLETED" } });
+    // Re-assert APPROVED atomically in SQL: the check above ran outside this
+    // transaction, so a concurrent requestRevision (→ REVISION_REQUESTED) could
+    // otherwise be silently overwritten with COMPLETED.
+    const { count } = await tx.campaign.updateMany({
+      where: { id: campaign.id, status: "APPROVED" },
+      data: { status: "COMPLETED" },
+    });
+    if (count === 0) throw new Error("This campaign changed status before it could be completed. Nothing was changed — please refresh.");
     return markEarningEligible(tx, campaign.id);
   });
 

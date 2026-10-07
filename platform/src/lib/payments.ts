@@ -187,7 +187,15 @@ export async function settleCampaignPayment(tx: Tx, input: SettleInput): Promise
 
   // --- Creator earning (exactly-once) ---
   const campaignId = payment.campaignId ?? input.campaignId ?? null;
-  if (campaignId) await ensureEarning(tx, campaignId);
+  if (campaignId) {
+    await ensureEarning(tx, campaignId);
+    // The brand may have COMPLETED the campaign before this payment settled
+    // (delayed or retried webhook). Re-run the same gated release so the
+    // earning cannot be stranded PENDING. Safe in every order: it is a no-op
+    // unless the campaign is COMPLETED AND the payment is PAID, and its
+    // `status: "PENDING"` SQL guard makes repeat deliveries change nothing.
+    await markEarningEligible(tx, campaignId);
+  }
 
   // Notify the paying brand — via tx so it rolls back with the rest.
   if (payment.userId) {
