@@ -4,24 +4,28 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/guards";
 import { notify } from "@/lib/notify";
 import { getPlatformSetting, sumNetCents } from "@/lib/payments";
+import { transferPayout } from "@/lib/connect-payouts";
 
 /**
- * ADMIN payout actions — LEDGER ONLY (no Stripe money movement).
+ * ADMIN payout actions.
  *
- * A Payout is an internal record that batches a creator's ELIGIBLE earnings.
- * An admin settles it out-of-band (bank transfer, etc.) and then marks it PAID,
- * which flips the batched earnings ELIGIBLE → PAID.
+ * A Payout batches a creator's ELIGIBLE earnings. Real settlement happens via a
+ * Stripe Connect transfer (lib/connect-payouts.ts) and is confirmed ONLY by the
+ * verified transfer.created webhook.
  *
  * INVARIANTS
  *  - Only ELIGIBLE, unbatched earnings can enter a payout (never PENDING).
  *  - An earning belongs to at most one payout — claimed via a guarded
  *    updateMany, so two concurrent admins cannot double-pay the same earning.
  *  - Payout amount is the sum of creator-NET cents; the platform fee is never
- *    paid out.
+ *    paid out and never recomputed.
+ *  - createPayoutForCreator RESERVES ONLY — it never moves money.
+ *  - markPayoutPaid is an out-of-band ledger fallback and REFUSES any payout
+ *    that is PROCESSING or already has a stripeTransferId: once Stripe owns the
+ *    transfer, only the webhook may settle it. No browser action can ever
+ *    perform PROCESSING → PAID.
  *  - Every transition is idempotent: re-running is a no-op, never a double.
- *  - Nothing here touches Stripe Checkout, the webhook, or Payment rows.
- *  - stripeTransferId / stripePayoutId stay NULL — they are reserved for real
- *    Stripe Connect transfers and are never filled with non-Stripe references.
+ *  - Nothing here touches Stripe Checkout, payment settlement, or Payment rows.
  */
 
 function requiredId(formData: FormData, field: string): string {
@@ -84,21 +88,32 @@ export async function createPayoutForCreator(formData: FormData) {
 }
 
 /**
- * Mark a payout PAID after settling it out-of-band, flipping its earnings
- * ELIGIBLE → PAID. Idempotent: a payout already PAID/FAILED/CANCELED is a no-op.
+ * OUT-OF-BAND ledger settlement (used when Stripe Connect is not the payout rail).
+ *
+ * HARD LIMIT: refuses any payout that is PROCESSING or already carries a
+ * stripeTransferId. A Stripe transfer in flight may only be settled by the
+ * verified transfer.created webhook — never by a browser action.
  */
 export async function markPayoutPaid(formData: FormData) {
   await requireAdmin();
   const payoutId = requiredId(formData, "payoutId");
 
+  const existing = await prisma.payout.findUnique({
+    where: { id: payoutId },
+    select: { status: true, stripeTransferId: true },
+  });
+  if (!existing) throw new Error("Payout not found.");
+  if (existing.stripeTransferId || existing.status === "PROCESSING") {
+    throw new Error("This payout is being settled by Stripe. Only a verified Stripe transfer event can mark it paid.");
+  }
+
   const result = await prisma.$transaction(async (tx) => {
-    // Guarded in SQL — only an open payout can be settled, so a double submit
-    // cannot pay twice or resurrect a failed payout.
+    // Guarded in SQL — PENDING only, and only while no Stripe transfer exists.
     const { count } = await tx.payout.updateMany({
-      where: { id: payoutId, status: { in: ["PENDING", "PROCESSING"] } },
+      where: { id: payoutId, status: "PENDING", stripeTransferId: null },
       data: { status: "PAID", paidAt: new Date(), failureReason: null },
     });
-    if (count === 0) return null; // already settled — nothing to do
+    if (count === 0) return null; // already settled or now Stripe-owned — nothing to do
 
     await tx.earning.updateMany({
       where: { payoutId, status: "ELIGIBLE" },
@@ -147,5 +162,33 @@ export async function markPayoutFailed(formData: FormData) {
       "A payout attempt did not go through. Your earnings remain eligible and will be re-attempted.",
     );
   }
+  revalidatePayoutViews();
+}
+
+
+/**
+ * Send a payout as a REAL Stripe Connect transfer.
+ *
+ * Thin form wrapper around transferPayout(), which owns the authorization,
+ * readiness gate, atomic PENDING → PROCESSING reservation, and Stripe call.
+ * This action can never mark the payout PAID — that is the webhook's job alone.
+ *
+ * Returns nothing; the resulting state is read back from the payout row. Any
+ * failure is recorded as a safe, pre-formatted failureReason rather than a raw
+ * Stripe error string.
+ */
+export async function sendPayoutTransfer(formData: FormData) {
+  const payoutId = requiredId(formData, "payoutId");
+  const result = await transferPayout(payoutId);
+
+  // Surface blocked/not-ready outcomes that leave no trace on the row, so the
+  // admin gets feedback instead of a silent no-op.
+  if (!result.ok && (result.status === "NOT_READY" || result.status === "BLOCKED")) {
+    await prisma.payout.updateMany({
+      where: { id: payoutId, status: { in: ["PENDING", "PROCESSING"] } },
+      data: { failureReason: `${result.code ?? result.status}: ${result.message ?? ""}`.slice(0, 500) },
+    });
+  }
+
   revalidatePayoutViews();
 }
