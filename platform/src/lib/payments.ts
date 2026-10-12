@@ -257,6 +257,22 @@ export function sumNetCents(earnings: { netCents: number }[]): number {
 }
 
 /**
+ * The funding payment has NO refund on record — required before an earning can
+ * enter a payout or be marked paid. Use as `payment: { is: UNREFUNDED_PAYMENT_WHERE }`
+ * (an earning with no payment never matches, so it is never payable).
+ *
+ * Checks the refundedCents rollup and Refund rows, not just status:
+ * settleCampaignPayment (late webhook / reconcileCampaignPayment) can reset a
+ * REFUNDED status back to PAID, but never touches refundedCents or Refund rows.
+ * Any refund — partial included — holds the earning for admin review.
+ */
+export const UNREFUNDED_PAYMENT_WHERE: Prisma.PaymentWhereInput = {
+  refundedCents: 0,
+  status: { notIn: ["REFUNDED", "PARTIALLY_REFUNDED"] },
+  refunds: { none: { status: { in: ["PENDING", "SUCCEEDED"] } } },
+};
+
+/**
  * Pure predicate — may this earning become ELIGIBLE (payable)?
  *
  *   • campaign not COMPLETED ⇒ no (work isn't finished)

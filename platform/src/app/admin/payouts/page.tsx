@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { usd, fmtDate, PAYOUT_STATUS_LABEL } from "@/lib/format";
-import { sumNetCents } from "@/lib/payments";
+import { sumNetCents, UNREFUNDED_PAYMENT_WHERE } from "@/lib/payments";
 import { createPayoutForCreator, markPayoutPaid, markPayoutFailed } from "@/lib/actions/payouts";
 
 export const dynamic = "force-dynamic";
@@ -14,11 +14,15 @@ export const dynamic = "force-dynamic";
 export default async function AdminPayoutsPage() {
   const creatorInclude = { creator: { include: { user: { select: { name: true, email: true } } } } };
 
-  const [eligible, payouts] = await Promise.all([
+  const [eligible, held, payouts] = await Promise.all([
     prisma.earning.findMany({
-      where: { status: "ELIGIBLE", payoutId: null },
+      where: { status: "ELIGIBLE", payoutId: null, payment: { is: UNREFUNDED_PAYMENT_WHERE } },
       orderBy: { eligibleAt: "asc" },
       include: { ...creatorInclude, campaign: { select: { title: true } } },
+    }),
+    prisma.earning.findMany({
+      where: { status: "ELIGIBLE", payoutId: null, NOT: { payment: { is: UNREFUNDED_PAYMENT_WHERE } } },
+      include: { campaign: { select: { title: true } } },
     }),
     prisma.payout.findMany({
       orderBy: { createdAt: "desc" },
@@ -70,6 +74,15 @@ export default async function AdminPayoutsPage() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {held.length > 0 && (
+        <div className="card p-4 mt-3">
+          <p className="font-semibold text-sm">Held — funding payment refunded ({held.length})</p>
+          <p className="text-xs text-zinc-500 mt-1">
+            Excluded from payouts pending admin review: {held.map((h) => `${h.campaign.title} (${usd(h.netCents)})`).join(", ")}
+          </p>
         </div>
       )}
 
