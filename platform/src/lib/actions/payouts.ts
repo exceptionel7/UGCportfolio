@@ -98,10 +98,8 @@ export async function markPayoutPaid(formData: FormData) {
     // if ANY attached earning's payment has a refund on record. Mark the payout
     // failed instead: that releases its earnings, and refunded ones stay out of
     // future batches.
-    const [attached, payable] = await Promise.all([
-      tx.earning.count({ where: { payoutId } }),
-      tx.earning.count({ where: { payoutId, payment: { is: UNREFUNDED_PAYMENT_WHERE } } }),
-    ]);
+    const attached = await tx.earning.count({ where: { payoutId } });
+    const payable = await tx.earning.count({ where: { payoutId, payment: { is: UNREFUNDED_PAYMENT_WHERE } } });
     if (payable !== attached) {
       throw new Error("This payout includes a campaign whose payment was refunded. It was not marked paid — mark it failed and review the refund.");
     }

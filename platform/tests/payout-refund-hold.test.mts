@@ -237,10 +237,18 @@ describe("wiring — the filter is applied where money can be released", () => {
     assert.match(markPaid.slice(check, settle), /throw new Error\(/);
   });
 
+  test("case 8: the two counts run sequentially on the transaction client (no Promise.all)", () => {
+    const attached = markPaid.indexOf("const attached = await tx.earning.count({ where: { payoutId } });");
+    const payable = markPaid.indexOf("const payable = await tx.earning.count({ where: { payoutId, payment: { is: UNREFUNDED_PAYMENT_WHERE } } });");
+    assert.ok(attached > 0, "attached count missing or reshaped");
+    assert.ok(payable > attached, "payable count must follow the attached count");
+    assert.doesNotMatch(markPaid, /Promise\.all/);
+  });
+
   test("case 11: admin page filters the eligible list and shows a Held card", () => {
     assert.match(ADMIN_PAGE, /where: \{ status: "ELIGIBLE", payoutId: null, payment: \{ is: UNREFUNDED_PAYMENT_WHERE \} \}/);
     assert.match(ADMIN_PAGE, /NOT: \{ payment: \{ is: UNREFUNDED_PAYMENT_WHERE \} \}/);
-    assert.match(ADMIN_PAGE, /Held — funding payment refunded/);
+    assert.match(ADMIN_PAGE, /Held: funding payment refunded or missing/);
   });
 
   test("the refund signals the filter relies on are still written by recordRefundForReview", () => {
@@ -280,6 +288,5 @@ describe("needs a database", () => {
   test.todo("case 10: clean payouts still work end-to-end; a non-admin is rejected by requireAdmin");
   test.todo("case 11: /admin/payouts renders the Held card and excludes held earnings from the eligible total");
   test.todo("Prisma interprets `payment: { is }`, `refunds: { none }` and `notIn` exactly as the evaluator above assumes");
-  test.todo("Promise.all on the interactive-transaction client in markPayoutPaid behaves on Postgres");
   test.todo("case 12: earlier PR #3/#5 lifecycle cases (eligibility, late settlement, APPROVED gate) against a real DB");
 });

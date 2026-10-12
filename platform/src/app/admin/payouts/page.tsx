@@ -79,7 +79,7 @@ export default async function AdminPayoutsPage() {
 
       {held.length > 0 && (
         <div className="card p-4 mt-3">
-          <p className="font-semibold text-sm">Held — funding payment refunded ({held.length})</p>
+          <p className="font-semibold text-sm">Held: funding payment refunded or missing ({held.length})</p>
           <p className="text-xs text-zinc-500 mt-1">
             Excluded from payouts pending admin review: {held.map((h) => `${h.campaign.title} (${usd(h.netCents)})`).join(", ")}
           </p>
