@@ -3,7 +3,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/guards";
 import { notify } from "@/lib/notify";
-import { getPlatformSetting, sumNetCents } from "@/lib/payments";
+import { getPlatformSetting, sumNetCents, UNREFUNDED_PAYMENT_WHERE } from "@/lib/payments";
 
 /**
  * ADMIN payout actions — LEDGER ONLY (no Stripe money movement).
@@ -50,11 +50,13 @@ export async function createPayoutForCreator(formData: FormData) {
   const setting = await getPlatformSetting();
 
   const created = await prisma.$transaction(async (tx) => {
+    // Refunded campaigns are held for admin review and never batched.
+    const payable = { creatorId, status: "ELIGIBLE" as const, payoutId: null, payment: { is: UNREFUNDED_PAYMENT_WHERE } };
     const earnings = await tx.earning.findMany({
-      where: { creatorId, status: "ELIGIBLE", payoutId: null },
+      where: payable,
       select: { id: true, netCents: true },
     });
-    if (earnings.length === 0) throw new Error("No eligible earnings for this creator.");
+    if (earnings.length === 0) throw new Error("No payable earnings for this creator. Earnings on refunded payments are held for review.");
 
     const amountCents = sumNetCents(earnings);
     const payout = await tx.payout.create({
@@ -62,10 +64,10 @@ export async function createPayoutForCreator(formData: FormData) {
     });
 
     // Claim the rows under the SAME predicate they were selected with. If a
-    // concurrent payout grabbed any of them, the count differs and we throw —
-    // rolling back this payout entirely rather than paying an earning twice.
+    // concurrent payout grabbed any of them, or a refund landed in between, the
+    // count differs and we throw — rolling back this payout entirely.
     const { count } = await tx.earning.updateMany({
-      where: { id: { in: earnings.map((e) => e.id) }, status: "ELIGIBLE", payoutId: null },
+      where: { ...payable, id: { in: earnings.map((e) => e.id) } },
       data: { payoutId: payout.id },
     });
     if (count !== earnings.length) {
@@ -92,6 +94,16 @@ export async function markPayoutPaid(formData: FormData) {
   const payoutId = requiredId(formData, "payoutId");
 
   const result = await prisma.$transaction(async (tx) => {
+    // A refund may have landed after this payout was created. Refuse to settle
+    // if ANY attached earning's payment has a refund on record. Mark the payout
+    // failed instead: that releases its earnings, and refunded ones stay out of
+    // future batches.
+    const attached = await tx.earning.count({ where: { payoutId } });
+    const payable = await tx.earning.count({ where: { payoutId, payment: { is: UNREFUNDED_PAYMENT_WHERE } } });
+    if (payable !== attached) {
+      throw new Error("This payout includes a campaign whose payment was refunded. It was not marked paid — mark it failed and review the refund.");
+    }
+
     // Guarded in SQL — only an open payout can be settled, so a double submit
     // cannot pay twice or resurrect a failed payout.
     const { count } = await tx.payout.updateMany({
