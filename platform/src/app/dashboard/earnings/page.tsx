@@ -1,7 +1,7 @@
 import { requireCreator } from "@/lib/guards";
 import { prisma } from "@/lib/prisma";
 import { usd, fmtDate, EARNING_STATUS_LABEL, PAYOUT_STATUS_LABEL } from "@/lib/format";
-import { sumNetCents } from "@/lib/payments";
+import { sumNetCents, UNREFUNDED_PAYMENT_WHERE } from "@/lib/payments";
 
 export const dynamic = "force-dynamic";
 
@@ -13,19 +13,30 @@ export const dynamic = "force-dynamic";
 export default async function EarningsPage() {
   const { creator } = await requireCreator();
 
-  const earnings = await prisma.earning.findMany({
-    where: { creatorId: creator.id },
-    orderBy: { createdAt: "desc" },
-    include: {
-      campaign: { select: { id: true, title: true, status: true } },
-      payout: { select: { id: true, status: true, paidAt: true } },
-    },
-  });
+  const [earnings, heldRows] = await Promise.all([
+    prisma.earning.findMany({
+      where: { creatorId: creator.id },
+      orderBy: { createdAt: "desc" },
+      include: {
+        campaign: { select: { id: true, title: true, status: true } },
+        payout: { select: { id: true, status: true, paidAt: true } },
+      },
+    }),
+    // Same hold rule as /admin/payouts: not yet paid out, and the funding
+    // payment is refunded or missing. Read-only; nothing here changes an earning.
+    prisma.earning.findMany({
+      where: { creatorId: creator.id, status: { in: ["PENDING", "ELIGIBLE"] }, NOT: { payment: { is: UNREFUNDED_PAYMENT_WHERE } } },
+      select: { id: true },
+    }),
+  ]);
+  const heldIds = new Set(heldRows.map((h) => h.id));
+  const isHeld = (e: { id: string }) => heldIds.has(e.id);
 
   const byStatus = (status: string) => earnings.filter((e) => e.status === status);
   const paid = byStatus("PAID");
-  const eligible = byStatus("ELIGIBLE");
-  const pending = byStatus("PENDING");
+  const eligible = byStatus("ELIGIBLE").filter((e) => !isHeld(e));
+  const pending = byStatus("PENDING").filter((e) => !isHeld(e));
+  const held = earnings.filter(isHeld);
   const lifetime = sumNetCents([...paid, ...eligible, ...pending]);
 
   return (
@@ -37,7 +48,7 @@ export default async function EarningsPage() {
 
       <div className="card p-6 mt-3">
         <div className="font-display font-bold text-4xl text-gradient">{usd(lifetime)}</div>
-        <p className="text-xs text-zinc-500 mt-2">Lifetime net earnings (excludes canceled).</p>
+        <p className="text-xs text-zinc-500 mt-2">Lifetime net earnings (excludes canceled and on hold).</p>
       </div>
 
       <div className="grid gap-2 sm:grid-cols-3 mt-3">
@@ -54,6 +65,16 @@ export default async function EarningsPage() {
           <p className="font-display font-bold text-xl text-zinc-400">{usd(sumNetCents(pending))}</p>
         </div>
       </div>
+
+      {held.length > 0 && (
+        <div className="card p-4 mt-3">
+          <p className="text-[11px] uppercase tracking-wide text-zinc-500">On hold</p>
+          <p className="font-display font-bold text-xl text-amber-400">{usd(sumNetCents(held))}</p>
+          <p className="text-xs text-zinc-500 mt-1">
+            The funding payment for this campaign was refunded or can&apos;t be found, so these earnings are not payable.
+          </p>
+        </div>
+      )}
 
       {eligible.length > 0 && (
         <p className="text-xs text-zinc-500 mt-3">
@@ -78,7 +99,7 @@ export default async function EarningsPage() {
                     {e.eligibleAt ? ` · eligible ${fmtDate(e.eligibleAt)}` : ""}
                     {e.payout ? ` · payout ${PAYOUT_STATUS_LABEL[e.payout.status] ?? e.payout.status}` : ""}
                   </p>
-                  <p className="text-[11px] text-zinc-500 mt-1">{EARNING_STATUS_LABEL[e.status] ?? e.status}</p>
+                  <p className="text-[11px] text-zinc-500 mt-1">{isHeld(e) ? "On hold" : EARNING_STATUS_LABEL[e.status] ?? e.status}</p>
                 </div>
                 <div className="text-right shrink-0">
                   <span
