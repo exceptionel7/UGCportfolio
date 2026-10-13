@@ -216,7 +216,7 @@ export async function reconcileCampaignPayment(formData: FormData) {
   if (!stripe) throw new Error("STRIPE_NOT_CONNECTED");
   const payment = campaign.payment;
   if (!payment?.stripeCheckoutSessionId) return; // nothing to reconcile
-  if (payment.status === "PAID") return;
+  if (payment.status !== "PROCESSING" && payment.status !== "FAILED") return; // reconcile only in-flight or failed checkouts; never re-settle PAID or refunded
 
   const session = await stripe.checkout.sessions.retrieve(payment.stripeCheckoutSessionId);
   if (session.payment_status !== "paid") return; // Stripe says not paid ⇒ we change nothing
