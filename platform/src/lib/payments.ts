@@ -173,9 +173,9 @@ export async function settleCampaignPayment(tx: Tx, input: SettleInput): Promise
     return { ok: false, reason: "DUPLICATE_CHARGE" };
   }
 
-  // --- Idempotent state transition (no-op if already PAID) ---
+  // --- Idempotent state transition (no-op if already PAID or refunded) ---
   await tx.payment.updateMany({
-    where: { id: payment.id, status: { not: "PAID" } },
+    where: { id: payment.id, status: { notIn: ["PAID", "REFUNDED", "PARTIALLY_REFUNDED"] } },
     data: {
       status: "PAID",
       paidAt: new Date(),
@@ -330,7 +330,7 @@ export async function markPaymentFailed(tx: Tx, event: Stripe.Event): Promise<vo
   const payment =
     (id ? await tx.payment.findUnique({ where: { id } }) : null) ??
     (await tx.payment.findUnique({ where: { stripePaymentIntentId: pi.id } }).catch(() => null));
-  if (!payment || payment.status === "PAID") return; // never downgrade a paid payment
+  if (!payment || ["PAID", "REFUNDED", "PARTIALLY_REFUNDED"].includes(payment.status)) return; // never downgrade a paid or refunded payment
   await tx.payment.update({
     where: { id: payment.id },
     data: { status: "FAILED", failureReason: pi.last_payment_error?.message ?? "payment_failed", stripePaymentIntentId: pi.id },
